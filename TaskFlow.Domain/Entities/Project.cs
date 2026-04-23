@@ -1,4 +1,6 @@
-﻿namespace TaskFlow.Domain.Entities
+﻿using TaskFlow.Domain.Common;
+
+namespace TaskFlow.Domain.Entities
 {
     public class Project : BaseEntity
     {

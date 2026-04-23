@@ -9,7 +9,10 @@
   <ItemGroup>
     <Folder Include="Services\" />
     <Folder Include="Repositories\" />
-    <Folder Include="Persistence\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
   </ItemGroup>
 
   <ItemGroup>
