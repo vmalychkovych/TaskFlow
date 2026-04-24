@@ -21,5 +21,26 @@ namespace TaskFlow.WebAPI.Controllers
             await _taskService.CreateTaskAsync(dto);
             return Ok();
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var tasks = await _taskService.GetAllTasksAsync();
+
+            return Ok(tasks);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            var task = await _taskService.GetTaskByIdAsync(id);
+
+            if (task == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(task);
+        }
     }
 }

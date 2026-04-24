@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TaskFlow.Application.DTOs;
+﻿using TaskFlow.Application.DTOs;
 using TaskFlow.Application.Interfaces;
 using TaskFlow.Domain.Entities;
 using TaskFlow.Domain.Enums;
@@ -34,6 +29,45 @@ namespace TaskFlow.Application.Services
 
             await _taskRepository.AddAsync(task);
             await _taskRepository.SaveChangesAsync();
+        }
+
+        public async Task<List<TaskDto>> GetAllTasksAsync()
+        {
+            var tasks = await _taskRepository.GetAllAsync();
+
+            var result = tasks
+                .Select(task => new TaskDto
+                {
+                    Id = task.Id,
+                    Title = task.Title,
+                    Description = task.Description,
+                    CreatedAt = task.CreatedAt,
+                    Priority = task.Priority.ToString(),
+                    Status = task.Status.ToString()
+                })
+                .ToList();
+
+            return result;
+        }
+
+        public async Task<TaskDto?> GetTaskByIdAsync(Guid id)
+        {
+            var task = await _taskRepository.GetByIdAsync(id);
+
+            if (task == null)
+            {
+                return null;
+            }
+
+            return new TaskDto
+            {
+                Id = task.Id,
+                Title = task.Title,
+                Description = task.Description,
+                CreatedAt = task.CreatedAt,
+                Priority = task.Priority.ToString(),
+                Status = task.Status.ToString()
+            };
         }
     }
 }
