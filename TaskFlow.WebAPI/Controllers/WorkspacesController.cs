@@ -6,11 +6,11 @@ namespace TaskFlow.WebAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class WorkspaceController : ControllerBase
+    public class WorkspacesController : ControllerBase
     {
         private readonly IWorkspaceService _workspaceService;
 
-        public WorkspaceController(IWorkspaceService workspaceService)
+        public WorkspacesController(IWorkspaceService workspaceService)
         {
             _workspaceService = workspaceService;
         }

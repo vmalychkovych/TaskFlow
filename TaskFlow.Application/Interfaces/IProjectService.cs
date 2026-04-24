@@ -10,5 +10,6 @@ namespace TaskFlow.Application.Interfaces
         Task<ProjectDto?> GetProjectByIdAsync(Guid id);
         Task<bool> UpdateProjectAsync(Guid id, UpdateProjectDto dto);
         Task<bool> DeleteProjectAsync(Guid id);
+        Task<ProjectDetailsDto?> GetProjectDetailsAsync(Guid id);
     }
 }

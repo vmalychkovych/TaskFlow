@@ -95,5 +95,34 @@ namespace TaskFlow.Application.Services
 
             return true;
         }
+
+        public async Task<ProjectDetailsDto?> GetProjectDetailsAsync(Guid id)
+        {
+            var project = await _projectRepository.GetByIdWithIncludesAsync(
+                id,
+                p => p.Tasks);
+
+            if (project == null)
+            {
+                return null;
+            }
+
+            return new ProjectDetailsDto
+            {
+                Id = project.Id,
+                Name = project.Name,
+                Description = project.Description,
+                WorkspaceId = project.WorkspaceId,
+                Tasks = project.Tasks.Select(task => new TaskDto
+                {
+                    Id = task.Id,
+                    Title = task.Title,
+                    Description = task.Description,
+                    Priority = task.Priority,
+                    Status = task.Status,
+                    CreatedAt = task.CreatedAt
+                }).ToList()
+            };
+        }
     }
 }
