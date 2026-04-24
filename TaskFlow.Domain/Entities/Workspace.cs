@@ -4,7 +4,9 @@ namespace TaskFlow.Domain.Entities
 {
     public class Workspace : BaseEntity
     {
-            public string Name { get; set; } = null!;
+        public string Name { get; set; } = null!;
         public string Description { get; set; } = null!;
+
+        public ICollection<Project> Projects { get; set; } = new List<Project>();
     }
 }

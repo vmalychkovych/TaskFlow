@@ -18,6 +18,7 @@ namespace TaskFlow.WebAPI.Extensions
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             services.AddScoped<ITaskService, TaskService>();
             services.AddScoped<IProjectService, ProjectService>();
+            services.AddScoped<IWorkspaceService, WorkspaceService>();
 
             return services;
         }

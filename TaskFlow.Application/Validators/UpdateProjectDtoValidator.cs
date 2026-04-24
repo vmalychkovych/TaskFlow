@@ -3,9 +3,9 @@ using TaskFlow.Application.DTOs;
 
 namespace TaskFlow.Application.Validators
 {
-    public class ProjectTaskDtoValidator : AbstractValidator<UpdateProjectDto>
+    public class UpdateProjectDtoValidator : AbstractValidator<UpdateProjectDto>
     {
-        public ProjectTaskDtoValidator()
+        public UpdateProjectDtoValidator()
         {
             RuleFor(x => x.Name)
                 .NotEmpty().WithMessage("Name is required.")

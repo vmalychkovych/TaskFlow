@@ -23,6 +23,12 @@ namespace TaskFlow.Infrastructure.Persistence
                 .WithOne(t => t.Project)
                 .HasForeignKey(t => t.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Workspace>()
+                .HasMany(w => w.Projects)
+                .WithOne(p => p.Workspace)
+                .HasForeignKey(p => p.WorkspaceId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
