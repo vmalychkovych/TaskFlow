@@ -3,12 +3,10 @@ using TaskFlow.Domain.Enums;
 
 namespace TaskFlow.Application.DTOs
 {
-    public class TaskDto
+    public class UpdateTaskDto
     {
-        public Guid Id { get; set; }
         public string Title { get; set; } = null!;
         public string Description { get; set; } = null!;
-        public DateTime CreatedAt { get; set; }
         public TaskPriority Priority { get; set; }
         public TaskItemStatus Status { get; set; }
     }

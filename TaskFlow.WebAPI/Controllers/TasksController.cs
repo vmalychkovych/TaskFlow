@@ -42,5 +42,18 @@ namespace TaskFlow.WebAPI.Controllers
 
             return Ok(task);
         }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(Guid id, UpdateTaskDto dto)
+        {
+            var result = await _taskService.UpdateTaskAsync(id, dto);
+
+            if (!result)
+            {
+                return NotFound();
+            }
+
+            return NoContent();
+        }
     }
 }

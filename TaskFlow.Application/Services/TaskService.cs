@@ -42,8 +42,8 @@ namespace TaskFlow.Application.Services
                     Title = task.Title,
                     Description = task.Description,
                     CreatedAt = task.CreatedAt,
-                    Priority = task.Priority.ToString(),
-                    Status = task.Status.ToString()
+                    Priority = task.Priority,
+                    Status = task.Status
                 })
                 .ToList();
 
@@ -65,9 +65,29 @@ namespace TaskFlow.Application.Services
                 Title = task.Title,
                 Description = task.Description,
                 CreatedAt = task.CreatedAt,
-                Priority = task.Priority.ToString(),
-                Status = task.Status.ToString()
+                Priority = task.Priority,
+                Status = task.Status
             };
+        }
+
+        public async Task<bool> UpdateTaskAsync(Guid id, UpdateTaskDto dto)
+        {
+            var task = await _taskRepository.GetByIdAsync(id);
+
+            if (task == null)
+            {
+                return false;
+            }
+
+            task.Title = dto.Title;
+            task.Description = dto.Description;
+            task.Priority = dto.Priority;
+            task.Status = dto.Status;
+
+            _taskRepository.Update(task);
+            await _taskRepository.SaveChangesAsync();
+
+            return true;
         }
     }
 }

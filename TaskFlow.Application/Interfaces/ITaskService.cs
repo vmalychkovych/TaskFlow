@@ -8,5 +8,6 @@ namespace TaskFlow.Application.Interfaces
         Task CreateTaskAsync(CreateTaskDto dto);
         Task<List<TaskDto>> GetAllTasksAsync();
         Task<TaskDto?> GetTaskByIdAsync(Guid id);
+        Task<bool> UpdateTaskAsync(Guid id, UpdateTaskDto dto);
     }
 }
