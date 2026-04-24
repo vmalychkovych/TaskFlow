@@ -55,7 +55,7 @@ namespace TaskFlow.Infrastructure.Migrations
                     table.PrimaryKey("PK_Workspaces", x => x.Id);
                 });
         }
-
+        
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
