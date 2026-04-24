@@ -12,5 +12,7 @@ namespace TaskFlow.Domain.Entities
         public TaskItemStatus Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public Guid ProjectId { get; set; }
+
+        public Project Project { get; set; } = null!;
     }
 }
