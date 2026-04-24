@@ -55,5 +55,16 @@ namespace TaskFlow.WebAPI.Controllers
 
             return NoContent();
         }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var result = await _taskService.DeleteTaskAsync(id);
+            if (!result)
+            {
+                return NotFound();
+            }
+            return NoContent();
+        }
     }
 }

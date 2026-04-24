@@ -89,5 +89,17 @@ namespace TaskFlow.Application.Services
 
             return true;
         }
+
+        public async Task<bool> DeleteTaskAsync(Guid id)
+        {
+            var task = await _taskRepository.GetByIdAsync(id);
+            if (task == null)
+            {
+                return false;
+            }
+            _taskRepository.Delete(task);
+            await _taskRepository.SaveChangesAsync();
+            return true;
+        }
     }
 }
