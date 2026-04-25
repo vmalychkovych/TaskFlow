@@ -8,6 +8,7 @@ namespace TaskFlow.Application.Interfaces
         Task CreateWorkspaceAsync(CreateWorkspaceDto dto);
         Task<List<WorkspaceDto>> GetAllWorkspacesAsync();
         Task<WorkspaceDto?> GetWorkspaceByIdAsync(Guid id);
+        Task<WorkspaceDetailsDto?> GetWorkspaceWithDetailsByIdAsync(Guid id);
         Task<bool> UpdateWorkspaceAsync(Guid id, UpdateWorkspaceDto dto);
         Task<bool> DeleteWorkspaceAsync(Guid id);
     }

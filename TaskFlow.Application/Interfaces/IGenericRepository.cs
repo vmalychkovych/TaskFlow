@@ -11,6 +11,9 @@ namespace TaskFlow.Application.Interfaces
         Task<T?> GetByIdWithIncludesAsync(
             Guid id,
             params Expression<Func<T, object>>[] includes);
+        Task<T?> GetByIdWithFullIncludeAsync(
+            Guid id,
+            Func<IQueryable<T>, IQueryable<T>> include);
         Task AddAsync(T entity);
         void Update(T entity);
         void Delete(T entity);

@@ -1,6 +1,7 @@
 ﻿using TaskFlow.Application.DTOs;
 using TaskFlow.Application.Interfaces;
 using TaskFlow.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace TaskFlow.Application.Services
 {
@@ -89,6 +90,44 @@ namespace TaskFlow.Application.Services
             await _workspaceRepository.SaveChangesAsync();
 
             return true;
+        }
+
+
+        public async Task<WorkspaceDetailsDto?> GetWorkspaceWithDetailsByIdAsync(Guid id)
+        {
+            var workspace = await _workspaceRepository.GetByIdWithFullIncludeAsync(
+                id,
+                query => query
+                    .Include(workspace => workspace.Projects)
+                    .ThenInclude(project => project.Tasks));
+
+            if (workspace == null)
+            {
+                return null;
+            }
+
+            return new WorkspaceDetailsDto
+            {
+                Id = workspace.Id,
+                Name = workspace.Name,
+                Description = workspace.Description,
+                Projects = workspace.Projects.Select(project => new ProjectDetailsDto
+                {
+                    Id = project.Id,
+                    Name = project.Name,
+                    Description = project.Description,
+                    WorkspaceId = project.WorkspaceId,
+                    Tasks = project.Tasks.Select(task => new TaskDto
+                    {
+                        Id = task.Id,
+                        Title = task.Title,
+                        Description = task.Description,
+                        CreatedAt = task.CreatedAt,
+                        Priority = task.Priority,
+                        Status = task.Status
+                    }).ToList()
+                }).ToList()
+            };
         }
     }
 }

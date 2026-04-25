@@ -66,5 +66,18 @@ namespace TaskFlow.WebAPI.Controllers
             }
             return NoContent();
         }
+
+        [HttpGet("{id}/details")]
+        public async Task<IActionResult> GetDetails(Guid id)
+        {
+            var workspace = await _workspaceService.GetWorkspaceWithDetailsByIdAsync(id);
+
+            if (workspace == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(workspace);
+        }
     }
 }

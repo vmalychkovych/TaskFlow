@@ -59,5 +59,14 @@ namespace TaskFlow.Infrastructure.Repositories
         {
             await _context.SaveChangesAsync();
         }
+
+        public async Task<T?> GetByIdWithFullIncludeAsync(Guid id, Func<IQueryable<T>, IQueryable<T>> include)
+        {
+            IQueryable<T> query = _context.Set<T>();
+
+            query = include(query);
+
+            return await query.FirstOrDefaultAsync(x => x.Id == id);
+        }
     }
 }
