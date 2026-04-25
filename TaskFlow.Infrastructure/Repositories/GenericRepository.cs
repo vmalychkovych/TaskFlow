@@ -68,5 +68,10 @@ namespace TaskFlow.Infrastructure.Repositories
 
             return await query.FirstOrDefaultAsync(x => x.Id == id);
         }
+
+        public IQueryable<T> Query()
+        {
+            return _context.Set<T>().AsQueryable();
+        }
     }
 }

@@ -1,7 +1,4 @@
-﻿
-using TaskFlow.Domain.Enums;
-
-namespace TaskFlow.Application.DTOs
+﻿namespace TaskFlow.Application.DTOs
 {
     public class TaskDto
     {
@@ -9,7 +6,7 @@ namespace TaskFlow.Application.DTOs
         public string Title { get; set; } = null!;
         public string Description { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
-        public TaskPriority Priority { get; set; }
-        public TaskItemStatus Status { get; set; }
+        public string Priority { get; set; } = null!;
+        public string Status { get; set; } = null!;
     }
 }

@@ -118,8 +118,8 @@ namespace TaskFlow.Application.Services
                     Id = task.Id,
                     Title = task.Title,
                     Description = task.Description,
-                    Priority = task.Priority,
-                    Status = task.Status,
+                    Priority = task.Priority.ToString(),
+                    Status = task.Status.ToString(),
                     CreatedAt = task.CreatedAt
                 }).ToList()
             };

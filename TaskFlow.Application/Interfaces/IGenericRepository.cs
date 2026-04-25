@@ -18,5 +18,7 @@ namespace TaskFlow.Application.Interfaces
         void Update(T entity);
         void Delete(T entity);
         Task SaveChangesAsync();
+
+        IQueryable<T> Query();
     }
 }

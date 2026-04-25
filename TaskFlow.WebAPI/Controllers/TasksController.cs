@@ -23,11 +23,11 @@ namespace TaskFlow.WebAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] TaskQuery query)
         {
-            var tasks = await _taskService.GetAllTasksAsync();
+            var result = await _taskService.GetTasksAsync(query);
 
-            return Ok(tasks);
+            return Ok(result);
         }
 
         [HttpGet("{id}")]

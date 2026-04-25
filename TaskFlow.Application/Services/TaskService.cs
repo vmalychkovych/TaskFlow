@@ -1,4 +1,5 @@
-﻿using TaskFlow.Application.DTOs;
+﻿using Microsoft.EntityFrameworkCore;
+using TaskFlow.Application.DTOs;
 using TaskFlow.Application.Interfaces;
 using TaskFlow.Domain.Entities;
 using TaskFlow.Domain.Enums;
@@ -42,8 +43,8 @@ namespace TaskFlow.Application.Services
                     Title = task.Title,
                     Description = task.Description,
                     CreatedAt = task.CreatedAt,
-                    Priority = task.Priority,
-                    Status = task.Status
+                    Priority = task.Priority.ToString(),
+                    Status = task.Status.ToString()
                 })
                 .ToList();
 
@@ -65,8 +66,8 @@ namespace TaskFlow.Application.Services
                 Title = task.Title,
                 Description = task.Description,
                 CreatedAt = task.CreatedAt,
-                Priority = task.Priority,
-                Status = task.Status
+                Priority = task.Priority.ToString(),
+                Status = task.Status.ToString()
             };
         }
 
@@ -100,6 +101,71 @@ namespace TaskFlow.Application.Services
             _taskRepository.Delete(task);
             await _taskRepository.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<PagedResult<TaskDto>> GetTasksAsync(TaskQuery query)
+        {
+            var tasksQuery = _taskRepository.Query();
+
+            if (query.Priority.HasValue)
+            {
+                tasksQuery = tasksQuery.Where(task => task.Priority == query.Priority.Value);
+            }
+
+            if (query.Status.HasValue)
+            {
+                tasksQuery = tasksQuery.Where(task => task.Status == query.Status.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                tasksQuery = tasksQuery.Where(task =>
+                    task.Title.ToLower().Contains(query.Search.ToLower()) ||
+                    task.Description.ToLower().Contains(query.Search.ToLower()));
+            }
+
+            tasksQuery = query.SortBy.ToLower() switch
+            {
+                "title" => query.SortOrder.ToLower() == "asc"
+                    ? tasksQuery.OrderBy(task => task.Title)
+                    : tasksQuery.OrderByDescending(task => task.Title),
+
+                "priority" => query.SortOrder.ToLower() == "asc"
+                    ? tasksQuery.OrderBy(task => task.Priority)
+                    : tasksQuery.OrderByDescending(task => task.Priority),
+
+                "status" => query.SortOrder.ToLower() == "asc"
+                    ? tasksQuery.OrderBy(task => task.Status)
+                    : tasksQuery.OrderByDescending(task => task.Status),
+
+                _ => query.SortOrder.ToLower() == "asc"
+                    ? tasksQuery.OrderBy(task => task.CreatedAt)
+                    : tasksQuery.OrderByDescending(task => task.CreatedAt)
+            };
+
+            var totalCount = await tasksQuery.CountAsync();
+
+            var tasks = await tasksQuery
+                .Skip((query.Page - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .Select(task => new TaskDto
+                {
+                    Id = task.Id,
+                    Title = task.Title,
+                    Description = task.Description,
+                    Priority = task.Priority.ToString(),
+                    Status = task.Status.ToString(),
+                    CreatedAt = task.CreatedAt
+                })
+                .ToListAsync();
+
+            return new PagedResult<TaskDto>
+            {
+                Items = tasks,
+                TotalCount = totalCount,
+                Page = query.Page,
+                PageSize = query.PageSize
+            };
         }
     }
 }
