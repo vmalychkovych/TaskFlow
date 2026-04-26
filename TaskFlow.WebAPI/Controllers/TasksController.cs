@@ -26,7 +26,6 @@ namespace TaskFlow.WebAPI.Controllers
         public async Task<IActionResult> GetAll([FromQuery] TaskQuery query)
         {
             var result = await _taskService.GetTasksAsync(query);
-            throw new Exception("Test error");
             return Ok(result);
         }
 

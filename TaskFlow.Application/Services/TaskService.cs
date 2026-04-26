@@ -1,5 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.DTOs;
+using TaskFlow.Application.Exceptions;
 using TaskFlow.Application.Interfaces;
 using TaskFlow.Domain.Entities;
 using TaskFlow.Domain.Enums;
@@ -9,10 +11,12 @@ namespace TaskFlow.Application.Services
     public class TaskService : ITaskService
     {
         private readonly IGenericRepository<TaskItem> _taskRepository;
+        private readonly IMapper _mapper;
 
-        public TaskService(IGenericRepository<TaskItem> taskRepository)
+        public TaskService(IGenericRepository<TaskItem> taskRepository,IMapper mapper)
         {
             _taskRepository = taskRepository;
+            _mapper = mapper;
         }
 
         public async Task CreateTaskAsync(CreateTaskDto dto)
@@ -35,20 +39,7 @@ namespace TaskFlow.Application.Services
         public async Task<List<TaskDto>> GetAllTasksAsync()
         {
             var tasks = await _taskRepository.GetAllAsync();
-
-            var result = tasks
-                .Select(task => new TaskDto
-                {
-                    Id = task.Id,
-                    Title = task.Title,
-                    Description = task.Description,
-                    CreatedAt = task.CreatedAt,
-                    Priority = task.Priority.ToString(),
-                    Status = task.Status.ToString()
-                })
-                .ToList();
-
-            return result;
+            return _mapper.Map<List<TaskDto>>(tasks);
         }
 
         public async Task<TaskDto?> GetTaskByIdAsync(Guid id)
@@ -57,18 +48,10 @@ namespace TaskFlow.Application.Services
 
             if (task == null)
             {
-                return null;
+                throw new NotFoundException("Task not found.");
             }
 
-            return new TaskDto
-            {
-                Id = task.Id,
-                Title = task.Title,
-                Description = task.Description,
-                CreatedAt = task.CreatedAt,
-                Priority = task.Priority.ToString(),
-                Status = task.Status.ToString()
-            };
+            return _mapper.Map<TaskDto>(task);
         }
 
         public async Task<bool> UpdateTaskAsync(Guid id, UpdateTaskDto dto)
@@ -148,23 +131,13 @@ namespace TaskFlow.Application.Services
             var tasks = await tasksQuery
                 .Skip((query.Page - 1) * query.PageSize)
                 .Take(query.PageSize)
-                .Select(task => new TaskDto
-                {
-                    Id = task.Id,
-                    Title = task.Title,
-                    Description = task.Description,
-                    Priority = task.Priority.ToString(),
-                    Status = task.Status.ToString(),
-                    CreatedAt = task.CreatedAt
-                })
                 .ToListAsync();
+
+            var taskDtos = _mapper.Map<List<TaskDto>>(tasks);
 
             return new PagedResult<TaskDto>
             {
-                Items = tasks,
-                TotalCount = totalCount,
-                Page = query.Page,
-                PageSize = query.PageSize
+                Items =taskDtos
             };
         }
     }

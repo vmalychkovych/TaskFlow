@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json;
+using TaskFlow.Application.Exceptions;
 
 namespace TaskFlow.WebAPI.Middlewares
 {
@@ -30,12 +31,20 @@ namespace TaskFlow.WebAPI.Middlewares
                 _logger.LogError(ex, ex.Message);
 
                 context.Response.ContentType = "application/json";
-                context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+
+                context.Response.StatusCode = ex switch
+                {
+                    NotFoundException => (int)HttpStatusCode.NotFound,
+                    BadRequestException => (int)HttpStatusCode.BadRequest,
+                    _ => (int)HttpStatusCode.InternalServerError
+                };
 
                 var response = new
                 {
-                    message = "Something went wrong",
-                    details = _env.IsDevelopment() ? ex.Message : null
+                    message = ex.Message,
+                    details = _env.IsDevelopment() && context.Response.StatusCode == 500
+                         ? ex.StackTrace
+                            : null
                 };
 
                 var json = JsonSerializer.Serialize(response);
