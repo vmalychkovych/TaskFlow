@@ -22,5 +22,13 @@ namespace TaskFlow.WebAPI.Controllers
 
             return Ok(new { message = "User registered successfully." });
         }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(LoginDto dto)
+        {
+            var result = await _authService.LoginAsync(dto);
+
+            return Ok(result);
+        }
     }
 }
