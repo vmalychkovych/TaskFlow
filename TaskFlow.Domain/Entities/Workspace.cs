@@ -8,5 +8,8 @@ namespace TaskFlow.Domain.Entities
         public string Description { get; set; } = null!;
 
         public ICollection<Project> Projects { get; set; } = new List<Project>();
+
+        public string OwnerId { get; set; } = null!;
+        public ApplicationUser Owner { get; set; } = null!;
     }
 }

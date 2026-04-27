@@ -30,6 +30,12 @@ namespace TaskFlow.Infrastructure.Persistence
                 .WithOne(p => p.Workspace)
                 .HasForeignKey(p => p.WorkspaceId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ApplicationUser>()
+                .HasMany(user => user.Workspaces)
+                .WithOne(workspace => workspace.Owner)
+                .HasForeignKey(workspace => workspace.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

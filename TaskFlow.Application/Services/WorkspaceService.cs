@@ -14,38 +14,38 @@ namespace TaskFlow.Application.Services
             _workspaceRepository = workspaceRepository;
         }
 
-        public async Task CreateWorkspaceAsync(CreateWorkspaceDto dto)
+        public async Task CreateWorkspaceAsync(CreateWorkspaceDto dto, string userId)
         {
             var workspace = new Workspace
             {
                 Id = Guid.NewGuid(),
                 Name = dto.Name,
-                Description = dto.Description
+                Description = dto.Description,
+                OwnerId = userId
             };
 
             await _workspaceRepository.AddAsync(workspace);
             await _workspaceRepository.SaveChangesAsync();
         }
 
-        public async Task<List<WorkspaceDto>> GetAllWorkspacesAsync()
+        public async Task<List<WorkspaceDto>> GetAllWorkspacesAsync(string userId)
         {
-            var workspace = await _workspaceRepository.GetAllAsync();
+            var workspaces = await _workspaceRepository.Query()
+                .Where(workspace => workspace.OwnerId == userId)
+                .ToListAsync();
 
-            var result = workspace
-                .Select(workspace => new WorkspaceDto
-                {
-                    Id = workspace.Id,
-                    Name = workspace.Name,
-                    Description = workspace.Description
-                })
-                .ToList();
-
-            return result;
+            return workspaces.Select(workspace => new WorkspaceDto
+            {
+                Id = workspace.Id,
+                Name = workspace.Name,
+                Description = workspace.Description
+            }).ToList();
         }
 
-        public async Task<WorkspaceDto?> GetWorkspaceByIdAsync(Guid id)
+        public async Task<WorkspaceDto?> GetWorkspaceByIdAsync(Guid id, string userId)
         {
-            var workspace = await _workspaceRepository.GetByIdAsync(id);
+            var workspace = await _workspaceRepository.Query()
+                .FirstOrDefaultAsync(workspace => workspace.Id == id && workspace.OwnerId == userId);
 
             if (workspace == null)
             {
@@ -60,6 +60,24 @@ namespace TaskFlow.Application.Services
             };
         }
 
+        public async Task<bool> UpdateWorkspaceAsync(Guid id, UpdateWorkspaceDto dto, string userId)
+        {
+            var workspace = await _workspaceRepository.Query()
+                .FirstOrDefaultAsync(workspace => workspace.Id == id && workspace.OwnerId == userId);
+
+            if (workspace == null)
+            {
+                return false;
+            }
+
+            workspace.Name = dto.Name;
+            workspace.Description = dto.Description;
+
+            _workspaceRepository.Update(workspace);
+            await _workspaceRepository.SaveChangesAsync();
+
+            return true;
+        }
         public async Task<bool> UpdateWorkspaceAsync(Guid id, UpdateWorkspaceDto dto)
         {
             var workspace = await _workspaceRepository.GetByIdAsync(id);
@@ -77,9 +95,10 @@ namespace TaskFlow.Application.Services
             return true;
         }
 
-        public async Task<bool> DeleteWorkspaceAsync(Guid id)
+        public async Task<bool> DeleteWorkspaceAsync(Guid id, string userId)
         {
-            var workspace = await _workspaceRepository.GetByIdAsync(id);
+            var workspace = await _workspaceRepository.Query()
+                .FirstOrDefaultAsync(workspace => workspace.Id == id && workspace.OwnerId == userId);
 
             if (workspace == null)
             {
@@ -93,13 +112,12 @@ namespace TaskFlow.Application.Services
         }
 
 
-        public async Task<WorkspaceDetailsDto?> GetWorkspaceWithDetailsByIdAsync(Guid id)
+        public async Task<WorkspaceDetailsDto?> GetWorkspaceDetailsAsync(Guid id, string userId)
         {
-            var workspace = await _workspaceRepository.GetByIdWithFullIncludeAsync(
-                id,
-                query => query
-                    .Include(workspace => workspace.Projects)
-                    .ThenInclude(project => project.Tasks));
+            var workspace = await _workspaceRepository.Query()
+                .Include(workspace => workspace.Projects)
+                .ThenInclude(project => project.Tasks)
+                .FirstOrDefaultAsync(workspace => workspace.Id == id && workspace.OwnerId == userId);
 
             if (workspace == null)
             {
@@ -122,9 +140,9 @@ namespace TaskFlow.Application.Services
                         Id = task.Id,
                         Title = task.Title,
                         Description = task.Description,
-                        CreatedAt = task.CreatedAt,
                         Priority = task.Priority.ToString(),
-                        Status = task.Status.ToString()
+                        Status = task.Status.ToString(),
+                        CreatedAt = task.CreatedAt
                     }).ToList()
                 }).ToList()
             };
