@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TaskFlow.Application.DTOs;
 using TaskFlow.Application.Interfaces;
 
@@ -29,6 +31,22 @@ namespace TaskFlow.WebAPI.Controllers
             var result = await _authService.LoginAsync(dto);
 
             return Ok(result);
+        }
+
+        [Authorize]
+        [HttpGet("me")]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _authService.GetCurrentUserAsync(userId);
+
+            return Ok(user);
         }
     }
 }

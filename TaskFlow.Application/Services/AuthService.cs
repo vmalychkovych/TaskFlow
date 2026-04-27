@@ -104,4 +104,22 @@ public class AuthService : IAuthService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+    public async Task<CurrentUserDto> GetCurrentUserAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+
+        if (user == null)
+        {
+            throw new NotFoundException("User not found.");
+        }
+
+        return new CurrentUserDto
+        {
+            UserId = user.Id,
+            Email = user.Email!,
+            FirstName = user.FirstName,
+            LastName = user.LastName
+        };
+    }
 }
