@@ -51,6 +51,8 @@ public class AuthService : IAuthService
             var errors = string.Join("; ", result.Errors.Select(e => e.Description));
             throw new BadRequestException(errors);
         }
+
+        await _userManager.AddToRoleAsync(user, "User");
     }
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
@@ -69,7 +71,7 @@ public class AuthService : IAuthService
             throw new BadRequestException("Invalid email or password.");
         }
 
-        var token = GenerateJwtToken(user);
+        var token = await GenerateJwtTokenAsync(user);
 
         return new AuthResponseDto
         {
@@ -79,18 +81,25 @@ public class AuthService : IAuthService
         };
     }
 
-    private string GenerateJwtToken(ApplicationUser user)
+    private async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
     {
         var jwtKey = _configuration["Jwt:Key"];
         var jwtIssuer = _configuration["Jwt:Issuer"];
         var jwtAudience = _configuration["Jwt:Audience"];
         var expiresInMinutes = int.Parse(_configuration["Jwt:ExpiresInMinutes"]!);
 
+        var roles = await _userManager.GetRolesAsync(user);
+
         var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Email, user.Email!)
-            };
+    {
+        new Claim(ClaimTypes.NameIdentifier, user.Id),
+        new Claim(ClaimTypes.Email, user.Email!)
+    };
+
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey!));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
