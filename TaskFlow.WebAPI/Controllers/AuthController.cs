@@ -55,5 +55,21 @@ namespace TaskFlow.WebAPI.Controllers
             var result = await _authService.RefreshTokenAsync(dto.RefreshToken);
             return Ok(result);
         }
+
+        [Authorize]
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                return Unauthorized();
+            }
+
+            await _authService.LogoutAsync(userId);
+
+            return Ok(new { message = "Logged out successfully." });
+        }
     }
 }

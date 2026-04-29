@@ -9,5 +9,6 @@ namespace TaskFlow.Application.Interfaces
         Task<AuthResponseDto> LoginAsync(LoginDto dto);
         Task<CurrentUserDto> GetCurrentUserAsync(string userId);
         Task<AuthResponseDto> RefreshTokenAsync(string refreshToken);
+        Task LogoutAsync(string userId);
     }
 }
