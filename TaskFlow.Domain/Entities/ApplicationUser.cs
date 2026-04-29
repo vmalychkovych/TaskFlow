@@ -8,5 +8,8 @@ namespace TaskFlow.Domain.Entities
         public string LastName { get; set; } = null!;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public ICollection<Workspace> Workspaces { get; set; } = new List<Workspace>();
+
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
     }
 }

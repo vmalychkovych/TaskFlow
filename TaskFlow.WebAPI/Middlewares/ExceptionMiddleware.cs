@@ -32,6 +32,7 @@ namespace TaskFlow.WebAPI.Middlewares
 
                 context.Response.ContentType = "application/json";
 
+                // Convert known application exceptions into consistent HTTP responses.
                 context.Response.StatusCode = ex switch
                 {
                     NotFoundException => (int)HttpStatusCode.NotFound,

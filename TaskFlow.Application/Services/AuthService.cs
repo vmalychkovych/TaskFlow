@@ -9,9 +9,6 @@ using TaskFlow.Domain.Entities;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 
-
-
-
 public class AuthService : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager;
@@ -52,6 +49,7 @@ public class AuthService : IAuthService
             throw new BadRequestException(errors);
         }
 
+        // Every registered account starts with the default application role.
         await _userManager.AddToRoleAsync(user, "User");
     }
 
@@ -71,11 +69,18 @@ public class AuthService : IAuthService
             throw new BadRequestException("Invalid email or password.");
         }
 
-        var token = await GenerateJwtTokenAsync(user);
+        var accessToken = await GenerateJwtTokenAsync(user);
+        var refreshToken = GenerateRefreshToken();
+
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
+        await _userManager.UpdateAsync(user);
 
         return new AuthResponseDto
         {
-            Token = token,
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
             Email = user.Email!,
             UserId = user.Id
         };
@@ -88,6 +93,7 @@ public class AuthService : IAuthService
         var jwtAudience = _configuration["Jwt:Audience"];
         var expiresInMinutes = int.Parse(_configuration["Jwt:ExpiresInMinutes"]!);
 
+        // Roles are added to JWT claims so [Authorize(Roles = "...")] can work.
         var roles = await _userManager.GetRolesAsync(user);
 
         var claims = new List<Claim>
@@ -129,6 +135,44 @@ public class AuthService : IAuthService
             Email = user.Email!,
             FirstName = user.FirstName,
             LastName = user.LastName
+        };
+    }
+
+    private string GenerateRefreshToken()
+    {
+        return Convert.ToBase64String(Guid.NewGuid().ToByteArray())
+            + Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+    }
+
+    public async Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)
+    {
+        var user = _userManager.Users
+            .FirstOrDefault(u => u.RefreshToken == refreshToken);
+
+        if (user == null)
+        {
+            throw new BadRequestException("Invalid refresh token");
+        }
+
+        if (user.RefreshTokenExpiryTime < DateTime.UtcNow)
+        {
+            throw new BadRequestException("Refresh token expired");
+        }
+
+        var newAccessToken = await GenerateJwtTokenAsync(user);
+        var newRefreshToken = GenerateRefreshToken();
+
+        user.RefreshToken = newRefreshToken;
+        user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
+        await _userManager.UpdateAsync(user);
+
+        return new AuthResponseDto
+        {
+            AccessToken = newAccessToken,
+            RefreshToken = newRefreshToken,
+            Email = user.Email!,
+            UserId = user.Id
         };
     }
 }

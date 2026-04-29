@@ -30,6 +30,7 @@ namespace TaskFlow.Application.Services
 
         public async Task<List<WorkspaceDto>> GetAllWorkspacesAsync(string userId)
         {
+            // Each user should only see workspaces that belong to them.
             var workspaces = await _workspaceRepository.Query()
                 .Where(workspace => workspace.OwnerId == userId)
                 .ToListAsync();
@@ -44,6 +45,7 @@ namespace TaskFlow.Application.Services
 
         public async Task<WorkspaceDto?> GetWorkspaceByIdAsync(Guid id, string userId)
         {
+            // Ownership is checked in the query to avoid exposing other users' workspaces by id.
             var workspace = await _workspaceRepository.Query()
                 .FirstOrDefaultAsync(workspace => workspace.Id == id && workspace.OwnerId == userId);
 
@@ -114,6 +116,7 @@ namespace TaskFlow.Application.Services
 
         public async Task<WorkspaceDetailsDto?> GetWorkspaceDetailsAsync(Guid id, string userId)
         {
+            // Load the full hierarchy in one query for the details endpoint.
             var workspace = await _workspaceRepository.Query()
                 .Include(workspace => workspace.Projects)
                 .ThenInclude(project => project.Tasks)

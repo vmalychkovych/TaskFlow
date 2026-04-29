@@ -43,6 +43,7 @@ namespace TaskFlow.WebAPI.Extensions
             })
             .AddJwtBearer(options =>
             {
+                // JWT validation must mirror the values used when tokens are issued.
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,

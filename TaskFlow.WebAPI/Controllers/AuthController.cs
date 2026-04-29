@@ -48,5 +48,12 @@ namespace TaskFlow.WebAPI.Controllers
 
             return Ok(user);
         }
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken(RefreshTokenRequestDto dto)
+        {
+            var result = await _authService.RefreshTokenAsync(dto.RefreshToken);
+            return Ok(result);
+        }
     }
 }
