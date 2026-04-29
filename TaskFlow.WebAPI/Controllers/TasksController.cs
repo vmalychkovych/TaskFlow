@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TaskFlow.Application.DTOs;
 using TaskFlow.Application.Interfaces;
 
@@ -20,21 +21,21 @@ namespace TaskFlow.WebAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(CreateTaskDto dto)
         {
-            await _taskService.CreateTaskAsync(dto);
+            await _taskService.CreateTaskAsync(dto, GetUserId());
             return Ok();
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] TaskQuery query)
         {
-            var result = await _taskService.GetTasksAsync(query);
+            var result = await _taskService.GetTasksAsync(query, GetUserId());
             return Ok(result);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var task = await _taskService.GetTaskByIdAsync(id);
+            var task = await _taskService.GetTaskByIdAsync(id, GetUserId());
 
             if (task == null)
             {
@@ -47,7 +48,7 @@ namespace TaskFlow.WebAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(Guid id, UpdateTaskDto dto)
         {
-            var result = await _taskService.UpdateTaskAsync(id, dto);
+            var result = await _taskService.UpdateTaskAsync(id, dto, GetUserId());
 
             if (!result)
             {
@@ -60,12 +61,17 @@ namespace TaskFlow.WebAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var result = await _taskService.DeleteTaskAsync(id);
+            var result = await _taskService.DeleteTaskAsync(id, GetUserId());
             if (!result)
             {
                 return NotFound();
             }
             return NoContent();
+        }
+
+        private string GetUserId()
+        {
+            return User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         }
     }
 }

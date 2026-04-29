@@ -11,16 +11,29 @@ namespace TaskFlow.Application.Services
     public class TaskService : ITaskService
     {
         private readonly IGenericRepository<TaskItem> _taskRepository;
+        private readonly IGenericRepository<Project> _projectRepository;
         private readonly IMapper _mapper;
 
-        public TaskService(IGenericRepository<TaskItem> taskRepository,IMapper mapper)
+        public TaskService(IGenericRepository<TaskItem> taskRepository, IGenericRepository<Project> projectRepository, IMapper mapper)
         {
             _taskRepository = taskRepository;
+            _projectRepository = projectRepository;
             _mapper = mapper;
         }
 
-        public async Task CreateTaskAsync(CreateTaskDto dto)
+        public async Task CreateTaskAsync(CreateTaskDto dto, string userId)
         {
+            var projectExists = await _projectRepository.Query()
+                .Include(project => project.Workspace)
+                .AnyAsync(project =>
+                    project.Id == dto.ProjectId &&
+                    project.Workspace.OwnerId == userId);
+
+            if (!projectExists)
+            {
+                throw new NotFoundException("Project not found.");
+            }
+
             var task = new TaskItem
             {
                 Id = Guid.NewGuid(),
@@ -42,21 +55,31 @@ namespace TaskFlow.Application.Services
             return _mapper.Map<List<TaskDto>>(tasks);
         }
 
-        public async Task<TaskDto?> GetTaskByIdAsync(Guid id)
+        public async Task<TaskDto?> GetTaskByIdAsync(Guid id, string userId)
         {
-            var task = await _taskRepository.GetByIdAsync(id);
+            var task = await _taskRepository.Query()
+                .Include(task => task.Project)
+                .ThenInclude(project => project.Workspace)
+                .FirstOrDefaultAsync(task =>
+                    task.Id == id &&
+                    task.Project.Workspace.OwnerId == userId);
 
             if (task == null)
             {
-                throw new NotFoundException("Task not found.");
+                return null;
             }
 
             return _mapper.Map<TaskDto>(task);
         }
 
-        public async Task<bool> UpdateTaskAsync(Guid id, UpdateTaskDto dto)
+        public async Task<bool> UpdateTaskAsync(Guid id, UpdateTaskDto dto, string userId)
         {
-            var task = await _taskRepository.GetByIdAsync(id);
+            var task = await _taskRepository.Query()
+                .Include(task => task.Project)
+                .ThenInclude(project => project.Workspace)
+                .FirstOrDefaultAsync(task =>
+                    task.Id == id &&
+                    task.Project.Workspace.OwnerId == userId);
 
             if (task == null)
             {
@@ -74,21 +97,32 @@ namespace TaskFlow.Application.Services
             return true;
         }
 
-        public async Task<bool> DeleteTaskAsync(Guid id)
+        public async Task<bool> DeleteTaskAsync(Guid id, string userId)
         {
-            var task = await _taskRepository.GetByIdAsync(id);
+            var task = await _taskRepository.Query()
+                .Include(task => task.Project)
+                .ThenInclude(project => project.Workspace)
+                .FirstOrDefaultAsync(task =>
+                    task.Id == id &&
+                    task.Project.Workspace.OwnerId == userId);
+
             if (task == null)
             {
                 return false;
             }
+
             _taskRepository.Delete(task);
             await _taskRepository.SaveChangesAsync();
+
             return true;
         }
 
-        public async Task<PagedResult<TaskDto>> GetTasksAsync(TaskQuery query)
+        public async Task<PagedResult<TaskDto>> GetTasksAsync(TaskQuery query, string userId)
         {
-            var tasksQuery = _taskRepository.Query();
+            var tasksQuery = _taskRepository.Query()
+                .Include(task => task.Project)
+                .ThenInclude(project => project.Workspace)
+                .Where(task => task.Project.Workspace.OwnerId == userId);
 
             if (query.Priority.HasValue)
             {
@@ -102,9 +136,11 @@ namespace TaskFlow.Application.Services
 
             if (!string.IsNullOrWhiteSpace(query.Search))
             {
+                var search = query.Search.ToLower();
+
                 tasksQuery = tasksQuery.Where(task =>
-                    task.Title.ToLower().Contains(query.Search.ToLower()) ||
-                    task.Description.ToLower().Contains(query.Search.ToLower()));
+                    task.Title.ToLower().Contains(search) ||
+                    task.Description.ToLower().Contains(search));
             }
 
             tasksQuery = query.SortBy.ToLower() switch
@@ -133,11 +169,12 @@ namespace TaskFlow.Application.Services
                 .Take(query.PageSize)
                 .ToListAsync();
 
-            var taskDtos = _mapper.Map<List<TaskDto>>(tasks);
-
             return new PagedResult<TaskDto>
             {
-                Items =taskDtos
+                Items = _mapper.Map<List<TaskDto>>(tasks),
+                TotalCount = totalCount,
+                Page = query.Page,
+                PageSize = query.PageSize
             };
         }
     }

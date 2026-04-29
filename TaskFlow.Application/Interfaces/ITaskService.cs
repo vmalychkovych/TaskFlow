@@ -5,11 +5,10 @@ namespace TaskFlow.Application.Interfaces
 {
     public interface ITaskService
     {
-        Task CreateTaskAsync(CreateTaskDto dto);
-        Task<List<TaskDto>> GetAllTasksAsync();
-        Task<TaskDto?> GetTaskByIdAsync(Guid id);
-        Task<bool> UpdateTaskAsync(Guid id, UpdateTaskDto dto);
-        Task<bool> DeleteTaskAsync(Guid id);
-        Task<PagedResult<TaskDto>> GetTasksAsync(TaskQuery query);
+        Task CreateTaskAsync(CreateTaskDto dto, string userId);
+        Task<PagedResult<TaskDto>> GetTasksAsync(TaskQuery query, string userId);
+        Task<TaskDto?> GetTaskByIdAsync(Guid id, string userId);
+        Task<bool> UpdateTaskAsync(Guid id, UpdateTaskDto dto, string userId);
+        Task<bool> DeleteTaskAsync(Guid id, string userId);
     }
 }
