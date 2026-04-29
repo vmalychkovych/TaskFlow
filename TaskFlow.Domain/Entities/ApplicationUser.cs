@@ -11,5 +11,6 @@ namespace TaskFlow.Domain.Entities
 
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }
+        public ICollection<TaskComment> Comments { get; set; } = new List<TaskComment>();
     }
 }

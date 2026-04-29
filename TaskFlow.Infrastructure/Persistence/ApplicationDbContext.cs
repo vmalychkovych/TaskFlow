@@ -14,6 +14,7 @@ namespace TaskFlow.Infrastructure.Persistence
         public DbSet<Workspace> Workspaces { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<TaskItem> Tasks { get; set; }
+        public DbSet<TaskComment> TaskComments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -35,6 +36,18 @@ namespace TaskFlow.Infrastructure.Persistence
                 .HasMany(user => user.Workspaces)
                 .WithOne(workspace => workspace.Owner)
                 .HasForeignKey(workspace => workspace.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TaskItem>()
+                .HasMany(task => task.Comments)
+                .WithOne(comment => comment.TaskItem)
+                .HasForeignKey(comment => comment.TaskItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ApplicationUser>()
+                .HasMany(user => user.Comments)
+                .WithOne(comment => comment.Author)
+                .HasForeignKey(comment => comment.AuthorId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

@@ -28,6 +28,7 @@ namespace TaskFlow.WebAPI.Extensions
             services.AddScoped<IProjectService, ProjectService>();
             services.AddScoped<IWorkspaceService, WorkspaceService>();
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<ITaskCommentService, TaskCommentService>();
             services.AddIdentity<ApplicationUser, IdentityRole>()
                     .AddEntityFrameworkStores<ApplicationDbContext>()
                     .AddDefaultTokenProviders();

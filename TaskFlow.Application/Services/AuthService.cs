@@ -1,13 +1,13 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using TaskFlow.Application.DTOs;
 using TaskFlow.Application.Exceptions;
 using TaskFlow.Application.Interfaces;
 using TaskFlow.Domain.Entities;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 
 public class AuthService : IAuthService
 {
