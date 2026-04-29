@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using TaskFlow.Application.DTOs;
 using TaskFlow.Application.Interfaces;
 using TaskFlow.Application.Services;
@@ -21,14 +22,14 @@ namespace TaskFlow.WebAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(CreateProjectDto dto)
         {
-            await _projectService.CreateProjectAsync(dto);
+            await _projectService.CreateProjectAsync(dto, GetUserId());
             return Ok();
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var projects = await _projectService.GetAllProjectsAsync();
+            var projects = await _projectService.GetAllProjectsAsync(GetUserId());
 
             return Ok(projects);
         }
@@ -36,7 +37,7 @@ namespace TaskFlow.WebAPI.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var project = await _projectService.GetProjectByIdAsync(id);
+            var project = await _projectService.GetProjectByIdAsync(id, GetUserId());
 
             if (project == null)
             {
@@ -49,7 +50,7 @@ namespace TaskFlow.WebAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(Guid id, UpdateProjectDto dto)
         {
-            var result = await _projectService.UpdateProjectAsync(id, dto);
+            var result = await _projectService.UpdateProjectAsync(id, dto, GetUserId());
 
             if (!result)
             {
@@ -62,7 +63,7 @@ namespace TaskFlow.WebAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var result = await _projectService.DeleteProjectAsync(id);
+            var result = await _projectService.DeleteProjectAsync(id, GetUserId());
             if (!result)
             {
                 return NotFound();
@@ -73,7 +74,7 @@ namespace TaskFlow.WebAPI.Controllers
         [HttpGet("{id}/details")]
         public async Task<IActionResult> GetDetails(Guid id)
         {
-            var project = await _projectService.GetProjectDetailsAsync(id);
+            var project = await _projectService.GetProjectDetailsAsync(id, GetUserId());
 
             if (project == null)
             {
@@ -81,6 +82,11 @@ namespace TaskFlow.WebAPI.Controllers
             }
 
             return Ok(project);
+        }
+
+        private string GetUserId()
+        {
+            return User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         }
     }
 }

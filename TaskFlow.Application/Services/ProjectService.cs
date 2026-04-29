@@ -1,21 +1,40 @@
-﻿using TaskFlow.Application.DTOs;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using TaskFlow.Application.DTOs;
+using TaskFlow.Application.Exceptions;
 using TaskFlow.Application.Interfaces;
 using TaskFlow.Domain.Entities;
-using TaskFlow.Domain.Enums;
 
 namespace TaskFlow.Application.Services
 {
     public class ProjectService : IProjectService
     {
         private readonly IGenericRepository<Project> _projectRepository;
+        private readonly IGenericRepository<Workspace> _workspaceRepository;
+        private readonly IMapper _mapper;
 
-        public ProjectService(IGenericRepository<Project> projectRepository)
+        public ProjectService(
+            IGenericRepository<Project> projectRepository,
+            IGenericRepository<Workspace> workspaceRepository,
+            IMapper mapper)
         {
             _projectRepository = projectRepository;
+            _workspaceRepository = workspaceRepository;
+            _mapper = mapper;
         }
 
-        public async Task CreateProjectAsync(CreateProjectDto dto)
+        public async Task CreateProjectAsync(CreateProjectDto dto, string userId)
         {
+            var workspaceExists = await _workspaceRepository.Query()
+                .AnyAsync(workspace =>
+                    workspace.Id == dto.WorkspaceId &&
+                    workspace.OwnerId == userId);
+
+            if (!workspaceExists)
+            {
+                throw new NotFoundException("Workspace not found.");
+            }
+
             var project = new Project
             {
                 Id = Guid.NewGuid(),
@@ -28,44 +47,39 @@ namespace TaskFlow.Application.Services
             await _projectRepository.SaveChangesAsync();
         }
 
-        public async Task<List<ProjectDto>> GetAllProjectsAsync()
+        public async Task<List<ProjectDto>> GetAllProjectsAsync(string userId)
         {
-            var project = await _projectRepository.GetAllAsync();
+            var projects = await _projectRepository.Query()
+                .Include(project => project.Workspace)
+                .Where(project => project.Workspace.OwnerId == userId)
+                .ToListAsync();
 
-            var result = project
-                .Select(project => new ProjectDto
-                {
-                    Id = project.Id,
-                    Name = project.Name,
-                    Description = project.Description,
-                    WorkspaceId = project.WorkspaceId
-                })
-                .ToList();
-
-            return result;
+            return _mapper.Map<List<ProjectDto>>(projects);
         }
 
-        public async Task<ProjectDto?> GetProjectByIdAsync(Guid id)
+        public async Task<ProjectDto?> GetProjectByIdAsync(Guid id, string userId)
         {
-            var project = await _projectRepository.GetByIdAsync(id);
+            var project = await _projectRepository.Query()
+                .Include(project => project.Workspace)
+                .FirstOrDefaultAsync(project =>
+                    project.Id == id &&
+                    project.Workspace.OwnerId == userId);
 
             if (project == null)
             {
                 return null;
             }
 
-            return new ProjectDto
-            {
-                Id = project.Id,
-                Name = project.Name,
-                Description = project.Description,
-                WorkspaceId = project.WorkspaceId
-            };
+            return _mapper.Map<ProjectDto>(project);
         }
 
-        public async Task<bool> UpdateProjectAsync(Guid id, UpdateProjectDto dto)
+        public async Task<bool> UpdateProjectAsync(Guid id, UpdateProjectDto dto, string userId)
         {
-            var project = await _projectRepository.GetByIdAsync(id);
+            var project = await _projectRepository.Query()
+                .Include(project => project.Workspace)
+                .FirstOrDefaultAsync(project =>
+                    project.Id == id &&
+                    project.Workspace.OwnerId == userId);
 
             if (project == null)
             {
@@ -81,9 +95,13 @@ namespace TaskFlow.Application.Services
             return true;
         }
 
-        public async Task<bool> DeleteProjectAsync(Guid id)
+        public async Task<bool> DeleteProjectAsync(Guid id, string userId)
         {
-            var project = await _projectRepository.GetByIdAsync(id);
+            var project = await _projectRepository.Query()
+                .Include(project => project.Workspace)
+                .FirstOrDefaultAsync(project =>
+                    project.Id == id &&
+                    project.Workspace.OwnerId == userId);
 
             if (project == null)
             {
@@ -96,11 +114,14 @@ namespace TaskFlow.Application.Services
             return true;
         }
 
-        public async Task<ProjectDetailsDto?> GetProjectDetailsAsync(Guid id)
+        public async Task<ProjectDetailsDto?> GetProjectDetailsAsync(Guid id, string userId)
         {
-            var project = await _projectRepository.GetByIdWithIncludesAsync(
-                id,
-                p => p.Tasks);
+            var project = await _projectRepository.Query()
+                .Include(project => project.Workspace)
+                .Include(project => project.Tasks)
+                .FirstOrDefaultAsync(project =>
+                    project.Id == id &&
+                    project.Workspace.OwnerId == userId);
 
             if (project == null)
             {
@@ -113,15 +134,7 @@ namespace TaskFlow.Application.Services
                 Name = project.Name,
                 Description = project.Description,
                 WorkspaceId = project.WorkspaceId,
-                Tasks = project.Tasks.Select(task => new TaskDto
-                {
-                    Id = task.Id,
-                    Title = task.Title,
-                    Description = task.Description,
-                    Priority = task.Priority.ToString(),
-                    Status = task.Status.ToString(),
-                    CreatedAt = task.CreatedAt
-                }).ToList()
+                Tasks = _mapper.Map<List<TaskDto>>(project.Tasks)
             };
         }
     }
