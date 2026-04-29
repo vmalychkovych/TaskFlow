@@ -1,5 +1,4 @@
-﻿
-using TaskFlow.Application.DTOs;
+﻿using TaskFlow.Application.DTOs;
 
 namespace TaskFlow.Application.Interfaces
 {
