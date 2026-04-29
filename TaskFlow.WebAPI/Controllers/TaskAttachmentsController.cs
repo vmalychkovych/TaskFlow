@@ -26,6 +26,14 @@ namespace TaskFlow.WebAPI.Controllers
             return Ok(result);
         }
 
+        [HttpGet("task/{taskId}")]
+        public async Task<IActionResult> GetByTaskId(Guid taskId)
+        {
+            var attachments = await _attachmentService.GetByTaskIdAsync(taskId, GetUserId());
+
+            return Ok(attachments);
+        }
+
         private string GetUserId()
         {
             return User.FindFirstValue(ClaimTypes.NameIdentifier)!;

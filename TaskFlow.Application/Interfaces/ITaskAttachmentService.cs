@@ -6,5 +6,6 @@ namespace TaskFlow.Application.Interfaces
     public interface ITaskAttachmentService
     {
         Task<TaskAttachmentDto> UploadAsync(Guid taskId, IFormFile file, string userId);
+        Task<List<TaskAttachmentDto>> GetByTaskIdAsync(Guid taskId, string userId);
     }
 }

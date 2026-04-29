@@ -91,5 +91,37 @@ namespace TaskFlow.Application.Services
                 UploadedAt = attachment.UploadedAt
             };
         }
+
+        public async Task<List<TaskAttachmentDto>> GetByTaskIdAsync(Guid taskId, string userId)
+        {
+            var taskExists = await _taskRepository.Query()
+                .Include(task => task.Project)
+                .ThenInclude(project => project.Workspace)
+                .AnyAsync(task =>
+                    task.Id == taskId &&
+                    task.Project.Workspace.OwnerId == userId);
+
+            if (!taskExists)
+            {
+                throw new NotFoundException("Task not found.");
+            }
+
+            var attachments = await _attachmentRepository.Query()
+                .Where(attachment => attachment.TaskItemId == taskId)
+                .OrderByDescending(attachment => attachment.UploadedAt)
+                .Select(attachment => new TaskAttachmentDto
+                {
+                    Id = attachment.Id,
+                    FileName = attachment.FileName,
+                    FileUrl = attachment.FileUrl,
+                    ContentType = attachment.ContentType,
+                    TaskItemId = attachment.TaskItemId,
+                    UploadedById = attachment.UploadedById,
+                    UploadedAt = attachment.UploadedAt
+                })
+                .ToListAsync();
+
+            return attachments;
+        }
     }
 }
