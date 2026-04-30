@@ -1,0 +1,49 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>TaskFlow SignalR Test</title>
+</head>
+<body>
+    <h2>TaskFlow SignalR Test</h2>
+
+    <textarea id="token" rows="6" cols="100" placeholder="Paste JWT token here"></textarea>
+    <br><br>
+
+    <button onclick="connect()">Connect</button>
+
+    <h3>Messages:</h3>
+    <ul id="messages"></ul>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+    <script>
+        let connection;
+
+        async function connect() {
+            const token = document.getElementById("token").value.trim();
+
+            connection = new signalR.HubConnectionBuilder()
+                .withUrl("https://localhost:7182/hubs/notifications", {
+                    accessTokenFactory: () => token
+                })
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on("ReceiveNotification", function (message) {
+                const li = document.createElement("li");
+                li.textContent = message;
+                document.getElementById("messages").appendChild(li);
+            });
+
+            try {
+                await connection.start();
+                console.log("Connected");
+            } catch (err) {
+                console.error(err);
+                alert("Connection failed. Check console.");
+            }
+        }
+    </script>
+</body>
+</html>
