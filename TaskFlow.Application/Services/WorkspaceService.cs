@@ -8,10 +8,12 @@ namespace TaskFlow.Application.Services
     public class WorkspaceService : IWorkspaceService
     {
         private readonly IGenericRepository<Workspace> _workspaceRepository;
+        private readonly ICacheService _cacheService;
 
-        public WorkspaceService(IGenericRepository<Workspace> workspaceRepository)
+        public WorkspaceService(IGenericRepository<Workspace> workspaceRepository, ICacheService cacheService)
         {
             _workspaceRepository = workspaceRepository;
+            _cacheService = cacheService;
         }
 
         public async Task CreateWorkspaceAsync(CreateWorkspaceDto dto, string userId)
@@ -77,23 +79,8 @@ namespace TaskFlow.Application.Services
 
             _workspaceRepository.Update(workspace);
             await _workspaceRepository.SaveChangesAsync();
+            await _cacheService.RemoveAsync($"workspace_details:{userId}:{id}");
 
-            return true;
-        }
-        public async Task<bool> UpdateWorkspaceAsync(Guid id, UpdateWorkspaceDto dto)
-        {
-            var workspace = await _workspaceRepository.GetByIdAsync(id);
-
-            if (workspace == null)
-            {
-                return false;
-            }
-
-            workspace.Name = dto.Name;
-            workspace.Description = dto.Description;
-
-            _workspaceRepository.Update(workspace);
-            await _workspaceRepository.SaveChangesAsync();
             return true;
         }
 
@@ -109,6 +96,7 @@ namespace TaskFlow.Application.Services
 
             _workspaceRepository.Delete(workspace);
             await _workspaceRepository.SaveChangesAsync();
+            await _cacheService.RemoveAsync($"workspace_details:{userId}:{id}");
 
             return true;
         }
@@ -116,6 +104,15 @@ namespace TaskFlow.Application.Services
 
         public async Task<WorkspaceDetailsDto?> GetWorkspaceDetailsAsync(Guid id, string userId)
         {
+            var cacheKey = $"workspace_details:{userId}:{id}";
+
+            var cachedWorkspace = await _cacheService.GetAsync<WorkspaceDetailsDto>(cacheKey);
+
+            if (cachedWorkspace != null)
+            {
+                return cachedWorkspace;
+            }
+
             // Load the full hierarchy in one query for the details endpoint.
             var workspace = await _workspaceRepository.Query()
                 .Include(workspace => workspace.Projects)
@@ -127,7 +124,7 @@ namespace TaskFlow.Application.Services
                 return null;
             }
 
-            return new WorkspaceDetailsDto
+            var result = new WorkspaceDetailsDto
             {
                 Id = workspace.Id,
                 Name = workspace.Name,
@@ -149,6 +146,10 @@ namespace TaskFlow.Application.Services
                     }).ToList()
                 }).ToList()
             };
+
+            await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(5));
+
+            return result;
         }
     }
 }

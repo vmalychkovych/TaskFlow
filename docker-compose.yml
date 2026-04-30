@@ -24,6 +24,15 @@ services:
     volumes:
       - taskflow_minio_data:/data
 
+  redis:
+    image: redis:7
+    container_name: taskflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - taskflow_redis_data:/data
+
 volumes:
   taskflow_postgres_data:
   taskflow_minio_data:
+  taskflow_redis_data:
