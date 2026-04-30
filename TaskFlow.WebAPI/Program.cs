@@ -1,11 +1,19 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using TaskFlow.Application.Validators;
 using TaskFlow.WebAPI.Extensions;
 using TaskFlow.WebAPI.Hubs;
 
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("logs/log-.txt", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog();
 
 builder.Services.AddApplicationServices(builder.Configuration);
 
@@ -71,6 +79,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCustomExceptionMiddleware();
+
+app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
 

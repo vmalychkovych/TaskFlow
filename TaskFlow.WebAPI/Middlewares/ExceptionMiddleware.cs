@@ -28,7 +28,7 @@ namespace TaskFlow.WebAPI.Middlewares
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.Message);
+                _logger.LogError(ex, "Unhandled exception occurred");
 
                 context.Response.ContentType = "application/json";
 

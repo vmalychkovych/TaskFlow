@@ -2,6 +2,7 @@
 .vs/
 bin/
 obj/
+logs/
 
 # User-specific
 *.user
