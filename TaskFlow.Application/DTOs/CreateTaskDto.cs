@@ -6,5 +6,6 @@ namespace TaskFlow.Application.DTOs
         public string Title { get; set; } = null!;
         public string Description { get; set; } = null!;
         public Guid ProjectId { get; set; }
+        public string? AssigneeUserId { get; set; }
     }
 }

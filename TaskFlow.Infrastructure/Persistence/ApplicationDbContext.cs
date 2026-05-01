@@ -96,6 +96,12 @@ namespace TaskFlow.Infrastructure.Persistence
                 .WithOne(attachment => attachment.UploadedBy)
                 .HasForeignKey(attachment => attachment.UploadedById)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ApplicationUser>()
+                .HasMany(user => user.AssignedTasks)
+                .WithOne(task => task.AssigneeUser)
+                .HasForeignKey(task => task.AssigneeUserId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

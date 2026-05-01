@@ -17,7 +17,12 @@ namespace TaskFlow.Application.Services
         private readonly INotificationService _notificationService;
         private readonly IEventBus _eventBus;
 
-        public TaskService(IGenericRepository<TaskItem> taskRepository, IGenericRepository<Project> projectRepository, IMapper mapper, INotificationService notificationService, IEventBus eventBus)
+        public TaskService(
+            IGenericRepository<TaskItem> taskRepository,
+            IGenericRepository<Project> projectRepository,
+            IMapper mapper,
+            INotificationService notificationService,
+            IEventBus eventBus)
         {
             _taskRepository = taskRepository;
             _projectRepository = projectRepository;
@@ -28,24 +33,18 @@ namespace TaskFlow.Application.Services
 
         public async Task CreateTaskAsync(CreateTaskDto dto, string userId)
         {
-            var projectExists = await _projectRepository.Query()
+            var project = await _projectRepository.Query()
                 .Include(project => project.Workspace)
+                .ThenInclude(workspace => workspace.Members)
                 .Include(project => project.Members)
-                .AnyAsync(project =>
-                    project.Id == dto.ProjectId &&
-                    (project.Workspace.OwnerId == userId ||
-                     project.Workspace.Members.Any(member =>
-                         member.UserId == userId &&
-                         member.Status == WorkspaceMemberStatus.Active &&
-                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
-                     project.Members.Any(member =>
-                         member.UserId == userId &&
-                         member.Status == ProjectMemberStatus.Active)));
+                .FirstOrDefaultAsync(project => project.Id == dto.ProjectId);
 
-            if (!projectExists)
+            if (project == null || !HasProjectAccess(project, userId))
             {
                 throw new NotFoundException("Project not found.");
             }
+
+            ValidateAssignee(project, dto.AssigneeUserId);
 
             var task = new TaskItem
             {
@@ -55,7 +54,8 @@ namespace TaskFlow.Application.Services
                 ProjectId = dto.ProjectId,
                 CreatedAt = DateTime.UtcNow,
                 Priority = TaskPriority.Medium,
-                Status = TaskItemStatus.ToDo
+                Status = TaskItemStatus.ToDo,
+                AssigneeUserId = dto.AssigneeUserId
             };
 
             await _taskRepository.AddAsync(task);
@@ -80,19 +80,11 @@ namespace TaskFlow.Application.Services
             var task = await _taskRepository.Query()
                 .Include(task => task.Project)
                 .ThenInclude(project => project.Workspace)
+                .ThenInclude(workspace => workspace.Members)
                 .Include(task => task.Project.Members)
-                .FirstOrDefaultAsync(task =>
-                    task.Id == id &&
-                    (task.Project.Workspace.OwnerId == userId ||
-                     task.Project.Workspace.Members.Any(member =>
-                         member.UserId == userId &&
-                         member.Status == WorkspaceMemberStatus.Active &&
-                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
-                     task.Project.Members.Any(member =>
-                         member.UserId == userId &&
-                         member.Status == ProjectMemberStatus.Active)));
+                .FirstOrDefaultAsync(task => task.Id == id);
 
-            if (task == null)
+            if (task == null || !HasProjectAccess(task.Project, userId))
             {
                 return null;
             }
@@ -105,27 +97,22 @@ namespace TaskFlow.Application.Services
             var task = await _taskRepository.Query()
                 .Include(task => task.Project)
                 .ThenInclude(project => project.Workspace)
+                .ThenInclude(workspace => workspace.Members)
                 .Include(task => task.Project.Members)
-                .FirstOrDefaultAsync(task =>
-                    task.Id == id &&
-                    (task.Project.Workspace.OwnerId == userId ||
-                     task.Project.Workspace.Members.Any(member =>
-                         member.UserId == userId &&
-                         member.Status == WorkspaceMemberStatus.Active &&
-                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
-                     task.Project.Members.Any(member =>
-                         member.UserId == userId &&
-                         member.Status == ProjectMemberStatus.Active)));
+                .FirstOrDefaultAsync(task => task.Id == id);
 
-            if (task == null)
+            if (task == null || !HasProjectAccess(task.Project, userId))
             {
                 return false;
             }
+
+            ValidateAssignee(task.Project, dto.AssigneeUserId);
 
             task.Title = dto.Title;
             task.Description = dto.Description;
             task.Priority = dto.Priority;
             task.Status = dto.Status;
+            task.AssigneeUserId = dto.AssigneeUserId;
 
             _taskRepository.Update(task);
             await _taskRepository.SaveChangesAsync();
@@ -138,19 +125,11 @@ namespace TaskFlow.Application.Services
             var task = await _taskRepository.Query()
                 .Include(task => task.Project)
                 .ThenInclude(project => project.Workspace)
+                .ThenInclude(workspace => workspace.Members)
                 .Include(task => task.Project.Members)
-                .FirstOrDefaultAsync(task =>
-                    task.Id == id &&
-                    (task.Project.Workspace.OwnerId == userId ||
-                     task.Project.Workspace.Members.Any(member =>
-                         member.UserId == userId &&
-                         member.Status == WorkspaceMemberStatus.Active &&
-                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
-                     task.Project.Members.Any(member =>
-                         member.UserId == userId &&
-                         member.Status == ProjectMemberStatus.Active)));
+                .FirstOrDefaultAsync(task => task.Id == id);
 
-            if (task == null)
+            if (task == null || !HasProjectAccess(task.Project, userId))
             {
                 return false;
             }
@@ -185,6 +164,15 @@ namespace TaskFlow.Application.Services
             if (query.Status.HasValue)
             {
                 tasksQuery = tasksQuery.Where(task => task.Status == query.Status.Value);
+            }
+
+            if (query.AssignedToMe)
+            {
+                tasksQuery = tasksQuery.Where(task => task.AssigneeUserId == userId);
+            }
+            else if (!string.IsNullOrWhiteSpace(query.AssigneeUserId))
+            {
+                tasksQuery = tasksQuery.Where(task => task.AssigneeUserId == query.AssigneeUserId);
             }
 
             if (!string.IsNullOrWhiteSpace(query.Search))
@@ -229,6 +217,35 @@ namespace TaskFlow.Application.Services
                 Page = query.Page,
                 PageSize = query.PageSize
             };
+        }
+
+        private static bool HasProjectAccess(Project project, string userId)
+        {
+            return project.Workspace.OwnerId == userId ||
+                   project.Workspace.Members.Any(member =>
+                       member.UserId == userId &&
+                       member.Status == WorkspaceMemberStatus.Active &&
+                       (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                   project.Members.Any(member =>
+                       member.UserId == userId &&
+                       member.Status == ProjectMemberStatus.Active);
+        }
+
+        private static void ValidateAssignee(Project project, string? assigneeUserId)
+        {
+            if (string.IsNullOrWhiteSpace(assigneeUserId))
+            {
+                return;
+            }
+
+            var isProjectMember = project.Members.Any(member =>
+                member.UserId == assigneeUserId &&
+                member.Status == ProjectMemberStatus.Active);
+
+            if (!isProjectMember)
+            {
+                throw new BadRequestException("Assignee must be an active project member.");
+            }
         }
     }
 }

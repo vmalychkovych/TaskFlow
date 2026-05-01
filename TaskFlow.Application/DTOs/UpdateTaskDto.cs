@@ -9,5 +9,6 @@ namespace TaskFlow.Application.DTOs
         public string Description { get; set; } = null!;
         public TaskPriority Priority { get; set; }
         public TaskItemStatus Status { get; set; }
+        public string? AssigneeUserId { get; set; }
     }
 }
