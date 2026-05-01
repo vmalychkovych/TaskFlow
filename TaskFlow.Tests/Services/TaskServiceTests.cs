@@ -2,6 +2,7 @@
 using FluentAssertions;
 using Moq;
 using TaskFlow.Application.DTOs;
+using TaskFlow.Application.Event;
 using TaskFlow.Application.Exceptions;
 using TaskFlow.Application.Interfaces;
 using TaskFlow.Application.Mappings;
@@ -17,12 +18,14 @@ namespace TaskFlow.Tests.Services
         private readonly Mock<INotificationService> _notificationServiceMock;
         private readonly IMapper _mapper;
         private readonly TaskService _taskService;
+        private readonly Mock<IEventBus> _eventBusMock;
 
         public TaskServiceTests()
         {
             _taskRepositoryMock = new Mock<IGenericRepository<TaskItem>>();
             _projectRepositoryMock = new Mock<IGenericRepository<Project>>();
             _notificationServiceMock = new Mock<INotificationService>();
+            _eventBusMock = new Mock<IEventBus>();
 
             var mapperConfig = new MapperConfiguration(cfg =>
             {
@@ -35,7 +38,8 @@ namespace TaskFlow.Tests.Services
                 _taskRepositoryMock.Object,
                 _projectRepositoryMock.Object,
                 _mapper,
-                _notificationServiceMock.Object);
+                _notificationServiceMock.Object,
+                _eventBusMock.Object);
         }
 
         [Fact]
@@ -95,6 +99,8 @@ namespace TaskFlow.Tests.Services
                     userId,
                     It.Is<string>(message => message.Contains(dto.Title))),
                 Times.Once);
+
+            _eventBusMock.Verify(bus => bus.PublishAsync(It.IsAny<TaskCreatedEvent>()),Times.Once);
         }
 
         [Fact]

@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.DTOs;
+using TaskFlow.Application.Event;
 using TaskFlow.Application.Exceptions;
 using TaskFlow.Application.Interfaces;
 using TaskFlow.Domain.Entities;
@@ -14,13 +15,15 @@ namespace TaskFlow.Application.Services
         private readonly IGenericRepository<Project> _projectRepository;
         private readonly IMapper _mapper;
         private readonly INotificationService _notificationService;
+        private readonly IEventBus _eventBus;
 
-        public TaskService(IGenericRepository<TaskItem> taskRepository, IGenericRepository<Project> projectRepository, IMapper mapper, INotificationService notificationService)
+        public TaskService(IGenericRepository<TaskItem> taskRepository, IGenericRepository<Project> projectRepository, IMapper mapper, INotificationService notificationService, IEventBus eventBus)
         {
             _taskRepository = taskRepository;
             _projectRepository = projectRepository;
             _mapper = mapper;
             _notificationService = notificationService;
+            _eventBus = eventBus;
         }
 
         public async Task CreateTaskAsync(CreateTaskDto dto, string userId)
@@ -49,7 +52,13 @@ namespace TaskFlow.Application.Services
 
             await _taskRepository.AddAsync(task);
             await _taskRepository.SaveChangesAsync();
-            await _notificationService.SendToUserAsync(userId,$"Task '{task.Title}' created");
+            await _notificationService.SendToUserAsync(userId, $"Task '{task.Title}' created");
+            await _eventBus.PublishAsync(new TaskCreatedEvent
+            {
+                TaskId = task.Id,
+                Title = task.Title,
+                UserId = userId
+            });
         }
 
         public async Task<List<TaskDto>> GetAllTasksAsync()

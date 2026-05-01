@@ -37,6 +37,7 @@ namespace TaskFlow.WebAPI.Extensions
                     .AddEntityFrameworkStores<ApplicationDbContext>()
                     .AddDefaultTokenProviders();
             services.AddScoped<INotificationService, SignalRNotificationService>();
+            services.AddSingleton<IEventBus, RabbitMQEventBus>();
 
             var jwtKey = configuration["Jwt:Key"];
             var jwtIssuer = configuration["Jwt:Issuer"];

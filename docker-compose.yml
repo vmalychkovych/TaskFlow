@@ -32,6 +32,16 @@ services:
     volumes:
       - taskflow_redis_data:/data
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: taskflow-rabbitmq
+    ports:
+    - "5672:5672"
+    - "15672:15672"
+    environment:
+        RABBITMQ_DEFAULT_USER: guest
+        RABBITMQ_DEFAULT_PASS: guest
+
 volumes:
   taskflow_postgres_data:
   taskflow_minio_data:
