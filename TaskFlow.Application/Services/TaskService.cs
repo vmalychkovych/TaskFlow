@@ -25,9 +25,9 @@ namespace TaskFlow.Application.Services
 
         public async Task CreateTaskAsync(CreateTaskDto dto, string userId)
         {
-            var projectExists = await _projectRepository.Query()
+            var projectExists = _projectRepository.Query()
                 .Include(project => project.Workspace)
-                .AnyAsync(project =>
+                .Any(project =>
                     project.Id == dto.ProjectId &&
                     project.Workspace.OwnerId == userId);
 
