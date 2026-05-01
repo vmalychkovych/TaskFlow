@@ -30,9 +30,17 @@ namespace TaskFlow.Application.Services
         {
             var projectExists = await _projectRepository.Query()
                 .Include(project => project.Workspace)
+                .Include(project => project.Members)
                 .AnyAsync(project =>
                     project.Id == dto.ProjectId &&
-                    HasWorkspaceAccess(project.Workspace, userId));
+                    (project.Workspace.OwnerId == userId ||
+                     project.Workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                     project.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == ProjectMemberStatus.Active)));
 
             if (!projectExists)
             {
@@ -72,9 +80,17 @@ namespace TaskFlow.Application.Services
             var task = await _taskRepository.Query()
                 .Include(task => task.Project)
                 .ThenInclude(project => project.Workspace)
+                .Include(task => task.Project.Members)
                 .FirstOrDefaultAsync(task =>
                     task.Id == id &&
-                    HasWorkspaceAccess(task.Project.Workspace, userId));
+                    (task.Project.Workspace.OwnerId == userId ||
+                     task.Project.Workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                     task.Project.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == ProjectMemberStatus.Active)));
 
             if (task == null)
             {
@@ -89,9 +105,17 @@ namespace TaskFlow.Application.Services
             var task = await _taskRepository.Query()
                 .Include(task => task.Project)
                 .ThenInclude(project => project.Workspace)
+                .Include(task => task.Project.Members)
                 .FirstOrDefaultAsync(task =>
                     task.Id == id &&
-                    HasWorkspaceAccess(task.Project.Workspace, userId));
+                    (task.Project.Workspace.OwnerId == userId ||
+                     task.Project.Workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                     task.Project.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == ProjectMemberStatus.Active)));
 
             if (task == null)
             {
@@ -114,9 +138,17 @@ namespace TaskFlow.Application.Services
             var task = await _taskRepository.Query()
                 .Include(task => task.Project)
                 .ThenInclude(project => project.Workspace)
+                .Include(task => task.Project.Members)
                 .FirstOrDefaultAsync(task =>
                     task.Id == id &&
-                    HasWorkspaceAccess(task.Project.Workspace, userId));
+                    (task.Project.Workspace.OwnerId == userId ||
+                     task.Project.Workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                     task.Project.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == ProjectMemberStatus.Active)));
 
             if (task == null)
             {
@@ -134,7 +166,16 @@ namespace TaskFlow.Application.Services
             var tasksQuery = _taskRepository.Query()
                 .Include(task => task.Project)
                 .ThenInclude(project => project.Workspace)
-                .Where(task => HasWorkspaceAccess(task.Project.Workspace, userId));
+                .Include(task => task.Project.Members)
+                .Where(task =>
+                    task.Project.Workspace.OwnerId == userId ||
+                    task.Project.Workspace.Members.Any(member =>
+                        member.UserId == userId &&
+                        member.Status == WorkspaceMemberStatus.Active &&
+                        (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                    task.Project.Members.Any(member =>
+                        member.UserId == userId &&
+                        member.Status == ProjectMemberStatus.Active));
 
             if (query.Priority.HasValue)
             {
@@ -188,14 +229,6 @@ namespace TaskFlow.Application.Services
                 Page = query.Page,
                 PageSize = query.PageSize
             };
-        }
-
-        private static bool HasWorkspaceAccess(Workspace workspace, string userId)
-        {
-            return workspace.OwnerId == userId ||
-                   workspace.Members.Any(member =>
-                       member.UserId == userId &&
-                       member.Status == WorkspaceMemberStatus.Active);
         }
     }
 }

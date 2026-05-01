@@ -29,7 +29,10 @@ namespace TaskFlow.Application.Services
             var workspaceExists = await _workspaceRepository.Query()
                 .AnyAsync(workspace =>
                     workspace.Id == dto.WorkspaceId &&
-                    HasWorkspaceAccess(workspace, userId));
+                    (workspace.OwnerId == userId ||
+                     workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active)));
 
             if (!workspaceExists)
             {
@@ -41,7 +44,18 @@ namespace TaskFlow.Application.Services
                 Id = Guid.NewGuid(),
                 Name = dto.Name,
                 Description = dto.Description,
-                WorkspaceId = dto.WorkspaceId
+                WorkspaceId = dto.WorkspaceId,
+                Members =
+                {
+                    new ProjectMember
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        Role = ProjectRole.ProjectAdmin,
+                        Status = ProjectMemberStatus.Active,
+                        AddedAt = DateTime.UtcNow
+                    }
+                }
             };
 
             await _projectRepository.AddAsync(project);
@@ -52,7 +66,15 @@ namespace TaskFlow.Application.Services
         {
             var projects = await _projectRepository.Query()
                 .Include(project => project.Workspace)
-                .Where(project => HasWorkspaceAccess(project.Workspace, userId))
+                .Where(project =>
+                    project.Workspace.OwnerId == userId ||
+                    project.Workspace.Members.Any(member =>
+                        member.UserId == userId &&
+                        member.Status == WorkspaceMemberStatus.Active &&
+                        (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                    project.Members.Any(member =>
+                        member.UserId == userId &&
+                        member.Status == ProjectMemberStatus.Active))
                 .ToListAsync();
 
             return _mapper.Map<List<ProjectDto>>(projects);
@@ -62,9 +84,17 @@ namespace TaskFlow.Application.Services
         {
             var project = await _projectRepository.Query()
                 .Include(project => project.Workspace)
+                .Include(project => project.Members)
                 .FirstOrDefaultAsync(project =>
                     project.Id == id &&
-                    HasWorkspaceAccess(project.Workspace, userId));
+                    (project.Workspace.OwnerId == userId ||
+                     project.Workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                     project.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == ProjectMemberStatus.Active)));
 
             if (project == null)
             {
@@ -78,9 +108,18 @@ namespace TaskFlow.Application.Services
         {
             var project = await _projectRepository.Query()
                 .Include(project => project.Workspace)
+                .Include(project => project.Members)
                 .FirstOrDefaultAsync(project =>
                     project.Id == id &&
-                    HasWorkspaceAccess(project.Workspace, userId));
+                    (project.Workspace.OwnerId == userId ||
+                     project.Workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                     project.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == ProjectMemberStatus.Active &&
+                         member.Role == ProjectRole.ProjectAdmin)));
 
             if (project == null)
             {
@@ -100,9 +139,18 @@ namespace TaskFlow.Application.Services
         {
             var project = await _projectRepository.Query()
                 .Include(project => project.Workspace)
+                .Include(project => project.Members)
                 .FirstOrDefaultAsync(project =>
                     project.Id == id &&
-                    HasWorkspaceAccess(project.Workspace, userId));
+                    (project.Workspace.OwnerId == userId ||
+                     project.Workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                     project.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == ProjectMemberStatus.Active &&
+                         member.Role == ProjectRole.ProjectAdmin)));
 
             if (project == null)
             {
@@ -119,10 +167,18 @@ namespace TaskFlow.Application.Services
         {
             var project = await _projectRepository.Query()
                 .Include(project => project.Workspace)
+                .Include(project => project.Members)
                 .Include(project => project.Tasks)
                 .FirstOrDefaultAsync(project =>
                     project.Id == id &&
-                    HasWorkspaceAccess(project.Workspace, userId));
+                    (project.Workspace.OwnerId == userId ||
+                     project.Workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                     project.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == ProjectMemberStatus.Active)));
 
             if (project == null)
             {
@@ -137,14 +193,6 @@ namespace TaskFlow.Application.Services
                 WorkspaceId = project.WorkspaceId,
                 Tasks = _mapper.Map<List<TaskDto>>(project.Tasks)
             };
-        }
-
-        private static bool HasWorkspaceAccess(Workspace workspace, string userId)
-        {
-            return workspace.OwnerId == userId ||
-                   workspace.Members.Any(member =>
-                       member.UserId == userId &&
-                       member.Status == WorkspaceMemberStatus.Active);
         }
     }
 }

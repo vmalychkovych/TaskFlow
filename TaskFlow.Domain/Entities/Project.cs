@@ -9,6 +9,7 @@ namespace TaskFlow.Domain.Entities
         public Guid WorkspaceId { get; set; }
 
         public ICollection<TaskItem> Tasks { get; set; } = new List<TaskItem>();
+        public ICollection<ProjectMember> Members { get; set; } = new List<ProjectMember>();
         public Workspace Workspace { get; set; } = null!;
     }
 }

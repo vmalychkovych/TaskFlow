@@ -45,7 +45,11 @@ namespace TaskFlow.Application.Services
         public async Task<List<WorkspaceDto>> GetAllWorkspacesAsync(string userId)
         {
             var workspaces = await _workspaceRepository.Query()
-                .Where(workspace => CanAccessWorkspace(workspace, userId))
+                .Where(workspace =>
+                    workspace.OwnerId == userId ||
+                    workspace.Members.Any(member =>
+                        member.UserId == userId &&
+                        member.Status == WorkspaceMemberStatus.Active))
                 .ToListAsync();
 
             return workspaces.Select(workspace => new WorkspaceDto
@@ -59,7 +63,12 @@ namespace TaskFlow.Application.Services
         public async Task<WorkspaceDto?> GetWorkspaceByIdAsync(Guid id, string userId)
         {
             var workspace = await _workspaceRepository.Query()
-                .FirstOrDefaultAsync(workspace => workspace.Id == id && CanAccessWorkspace(workspace, userId));
+                .FirstOrDefaultAsync(workspace =>
+                    workspace.Id == id &&
+                    (workspace.OwnerId == userId ||
+                     workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active)));
 
             if (workspace == null)
             {
@@ -77,7 +86,13 @@ namespace TaskFlow.Application.Services
         public async Task<bool> UpdateWorkspaceAsync(Guid id, UpdateWorkspaceDto dto, string userId)
         {
             var workspace = await _workspaceRepository.Query()
-                .FirstOrDefaultAsync(workspace => workspace.Id == id && CanManageWorkspace(workspace, userId));
+                .FirstOrDefaultAsync(workspace =>
+                    workspace.Id == id &&
+                    (workspace.OwnerId == userId ||
+                     workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin))));
 
             if (workspace == null)
             {
@@ -97,7 +112,13 @@ namespace TaskFlow.Application.Services
         public async Task<bool> DeleteWorkspaceAsync(Guid id, string userId)
         {
             var workspace = await _workspaceRepository.Query()
-                .FirstOrDefaultAsync(workspace => workspace.Id == id && IsWorkspaceOwner(workspace, userId));
+                .FirstOrDefaultAsync(workspace =>
+                    workspace.Id == id &&
+                    (workspace.OwnerId == userId ||
+                     workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         member.Role == WorkspaceRole.Owner)));
 
             if (workspace == null)
             {
@@ -125,7 +146,12 @@ namespace TaskFlow.Application.Services
             var workspace = await _workspaceRepository.Query()
                 .Include(workspace => workspace.Projects)
                 .ThenInclude(project => project.Tasks)
-                .FirstOrDefaultAsync(workspace => workspace.Id == id && CanAccessWorkspace(workspace, userId));
+                .FirstOrDefaultAsync(workspace =>
+                    workspace.Id == id &&
+                    (workspace.OwnerId == userId ||
+                     workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active)));
 
             if (workspace == null)
             {
@@ -158,32 +184,6 @@ namespace TaskFlow.Application.Services
             await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(5));
 
             return result;
-        }
-
-        private static bool CanAccessWorkspace(Workspace workspace, string userId)
-        {
-            return workspace.OwnerId == userId ||
-                   workspace.Members.Any(member =>
-                       member.UserId == userId &&
-                       member.Status == WorkspaceMemberStatus.Active);
-        }
-
-        private static bool CanManageWorkspace(Workspace workspace, string userId)
-        {
-            return workspace.OwnerId == userId ||
-                   workspace.Members.Any(member =>
-                       member.UserId == userId &&
-                       member.Status == WorkspaceMemberStatus.Active &&
-                       (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin));
-        }
-
-        private static bool IsWorkspaceOwner(Workspace workspace, string userId)
-        {
-            return workspace.OwnerId == userId ||
-                   workspace.Members.Any(member =>
-                       member.UserId == userId &&
-                       member.Status == WorkspaceMemberStatus.Active &&
-                       member.Role == WorkspaceRole.Owner);
         }
     }
 }

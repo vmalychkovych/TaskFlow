@@ -9,6 +9,7 @@ namespace TaskFlow.Domain.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public ICollection<Workspace> Workspaces { get; set; } = new List<Workspace>();
         public ICollection<WorkspaceMember> WorkspaceMemberships { get; set; } = new List<WorkspaceMember>();
+        public ICollection<ProjectMember> ProjectMemberships { get; set; } = new List<ProjectMember>();
 
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }
