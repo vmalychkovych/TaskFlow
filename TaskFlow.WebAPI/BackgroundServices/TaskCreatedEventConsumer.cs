@@ -1,8 +1,9 @@
-﻿using System.Text;
-using System.Text.Json;
-using RabbitMQ.Client;
+﻿using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using System.Text;
+using System.Text.Json;
 using TaskFlow.Application.Event;
+using TaskFlow.Application.Interfaces;
 
 namespace TaskFlow.WebAPI.BackgroundServices
 {
@@ -11,10 +12,12 @@ namespace TaskFlow.WebAPI.BackgroundServices
         private readonly ILogger<TaskCreatedEventConsumer> _logger;
         private IConnection? _connection;
         private IModel? _channel;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public TaskCreatedEventConsumer(ILogger<TaskCreatedEventConsumer> logger)
+        public TaskCreatedEventConsumer(ILogger<TaskCreatedEventConsumer> logger, IServiceScopeFactory scopeFactory)
         {
             _logger = logger;
+            _scopeFactory = scopeFactory;
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
@@ -38,7 +41,7 @@ namespace TaskFlow.WebAPI.BackgroundServices
 
             var consumer = new EventingBasicConsumer(_channel);
 
-            consumer.Received += (sender, args) =>
+            consumer.Received += async (sender, args) =>
             {
                 try
                 {
@@ -59,6 +62,13 @@ namespace TaskFlow.WebAPI.BackgroundServices
                         taskCreatedEvent.TaskId,
                         taskCreatedEvent.Title,
                         taskCreatedEvent.UserId);
+
+                    using var scope = _scopeFactory.CreateScope();
+
+                    var discordService = scope.ServiceProvider
+                        .GetRequiredService<IDiscordNotificationService>();
+
+                    await discordService.SendTaskCreatedAsync(taskCreatedEvent);
 
                     _channel.BasicAck(args.DeliveryTag, multiple: false);
                 }

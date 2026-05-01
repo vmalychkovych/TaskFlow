@@ -40,6 +40,7 @@ namespace TaskFlow.WebAPI.Extensions
             services.AddScoped<INotificationService, SignalRNotificationService>();
             services.AddSingleton<IEventBus, RabbitMQEventBus>();
             services.AddHostedService<TaskCreatedEventConsumer>();
+            services.AddHttpClient<IDiscordNotificationService, DiscordNotificationService>();
 
             var jwtKey = configuration["Jwt:Key"];
             var jwtIssuer = configuration["Jwt:Issuer"];
