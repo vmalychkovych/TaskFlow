@@ -10,6 +10,7 @@ using TaskFlow.Application.Services;
 using TaskFlow.Domain.Entities;
 using TaskFlow.Infrastructure.Persistence;
 using TaskFlow.Infrastructure.Repositories;
+using TaskFlow.WebAPI.BackgroundServices;
 using TaskFlow.WebAPI.Services;
 
 namespace TaskFlow.WebAPI.Extensions
@@ -38,6 +39,7 @@ namespace TaskFlow.WebAPI.Extensions
                     .AddDefaultTokenProviders();
             services.AddScoped<INotificationService, SignalRNotificationService>();
             services.AddSingleton<IEventBus, RabbitMQEventBus>();
+            services.AddHostedService<TaskCreatedEventConsumer>();
 
             var jwtKey = configuration["Jwt:Key"];
             var jwtIssuer = configuration["Jwt:Issuer"];
