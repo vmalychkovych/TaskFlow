@@ -84,6 +84,33 @@ namespace TaskFlow.WebAPI.Controllers
             return Ok(project);
         }
 
+        [HttpGet("{id}/members")]
+        public async Task<IActionResult> GetMembers(Guid id)
+        {
+            var members = await _projectService.GetProjectMembersAsync(id, GetUserId());
+            return Ok(members);
+        }
+
+        [HttpPost("{id}/members")]
+        public async Task<IActionResult> AddMember(Guid id, AddProjectMemberDto dto)
+        {
+            await _projectService.AddProjectMemberAsync(id, dto, GetUserId());
+            return Ok();
+        }
+
+        [HttpDelete("{id}/members/{memberUserId}")]
+        public async Task<IActionResult> RemoveMember(Guid id, string memberUserId)
+        {
+            var result = await _projectService.RemoveProjectMemberAsync(id, memberUserId, GetUserId());
+
+            if (!result)
+            {
+                return NotFound();
+            }
+
+            return NoContent();
+        }
+
         private string GetUserId()
         {
             return User.FindFirstValue(ClaimTypes.NameIdentifier)!;

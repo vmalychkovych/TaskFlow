@@ -11,5 +11,8 @@ namespace TaskFlow.Application.Interfaces
         Task<bool> UpdateProjectAsync(Guid id, UpdateProjectDto dto, string userId);
         Task<bool> DeleteProjectAsync(Guid id, string userId);
         Task<ProjectDetailsDto?> GetProjectDetailsAsync(Guid id, string userId);
+        Task<List<ProjectMemberDto>> GetProjectMembersAsync(Guid id, string userId);
+        Task AddProjectMemberAsync(Guid id, AddProjectMemberDto dto, string userId);
+        Task<bool> RemoveProjectMemberAsync(Guid id, string memberUserId, string userId);
     }
 }
