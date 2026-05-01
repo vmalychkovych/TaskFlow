@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.DTOs;
 using TaskFlow.Application.Event;
@@ -28,11 +28,11 @@ namespace TaskFlow.Application.Services
 
         public async Task CreateTaskAsync(CreateTaskDto dto, string userId)
         {
-            var projectExists = _projectRepository.Query()
+            var projectExists = await _projectRepository.Query()
                 .Include(project => project.Workspace)
-                .Any(project =>
+                .AnyAsync(project =>
                     project.Id == dto.ProjectId &&
-                    project.Workspace.OwnerId == userId);
+                    HasWorkspaceAccess(project.Workspace, userId));
 
             if (!projectExists)
             {
@@ -74,7 +74,7 @@ namespace TaskFlow.Application.Services
                 .ThenInclude(project => project.Workspace)
                 .FirstOrDefaultAsync(task =>
                     task.Id == id &&
-                    task.Project.Workspace.OwnerId == userId);
+                    HasWorkspaceAccess(task.Project.Workspace, userId));
 
             if (task == null)
             {
@@ -91,7 +91,7 @@ namespace TaskFlow.Application.Services
                 .ThenInclude(project => project.Workspace)
                 .FirstOrDefaultAsync(task =>
                     task.Id == id &&
-                    task.Project.Workspace.OwnerId == userId);
+                    HasWorkspaceAccess(task.Project.Workspace, userId));
 
             if (task == null)
             {
@@ -116,7 +116,7 @@ namespace TaskFlow.Application.Services
                 .ThenInclude(project => project.Workspace)
                 .FirstOrDefaultAsync(task =>
                     task.Id == id &&
-                    task.Project.Workspace.OwnerId == userId);
+                    HasWorkspaceAccess(task.Project.Workspace, userId));
 
             if (task == null)
             {
@@ -134,7 +134,7 @@ namespace TaskFlow.Application.Services
             var tasksQuery = _taskRepository.Query()
                 .Include(task => task.Project)
                 .ThenInclude(project => project.Workspace)
-                .Where(task => task.Project.Workspace.OwnerId == userId);
+                .Where(task => HasWorkspaceAccess(task.Project.Workspace, userId));
 
             if (query.Priority.HasValue)
             {
@@ -188,6 +188,14 @@ namespace TaskFlow.Application.Services
                 Page = query.Page,
                 PageSize = query.PageSize
             };
+        }
+
+        private static bool HasWorkspaceAccess(Workspace workspace, string userId)
+        {
+            return workspace.OwnerId == userId ||
+                   workspace.Members.Any(member =>
+                       member.UserId == userId &&
+                       member.Status == WorkspaceMemberStatus.Active);
         }
     }
 }

@@ -12,6 +12,7 @@ namespace TaskFlow.Infrastructure.Persistence
             }
 
         public DbSet<Workspace> Workspaces { get; set; }
+        public DbSet<WorkspaceMember> WorkspaceMembers { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<TaskItem> Tasks { get; set; }
         public DbSet<TaskComment> TaskComments { get; set; }
@@ -33,11 +34,27 @@ namespace TaskFlow.Infrastructure.Persistence
                 .HasForeignKey(p => p.WorkspaceId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<Workspace>()
+                .HasMany(workspace => workspace.Members)
+                .WithOne(member => member.Workspace)
+                .HasForeignKey(member => member.WorkspaceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             modelBuilder.Entity<ApplicationUser>()
                 .HasMany(user => user.Workspaces)
                 .WithOne(workspace => workspace.Owner)
                 .HasForeignKey(workspace => workspace.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ApplicationUser>()
+                .HasMany(user => user.WorkspaceMemberships)
+                .WithOne(member => member.User)
+                .HasForeignKey(member => member.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<WorkspaceMember>()
+                .HasIndex(member => new { member.WorkspaceId, member.UserId })
+                .IsUnique();
 
             modelBuilder.Entity<TaskItem>()
                 .HasMany(task => task.Comments)

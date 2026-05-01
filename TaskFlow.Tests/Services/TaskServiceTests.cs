@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using FluentAssertions;
 using Moq;
 using TaskFlow.Application.DTOs;
@@ -8,6 +8,8 @@ using TaskFlow.Application.Interfaces;
 using TaskFlow.Application.Mappings;
 using TaskFlow.Application.Services;
 using TaskFlow.Domain.Entities;
+using TaskFlow.Domain.Enums;
+using TaskFlow.Tests.Helpers;
 
 namespace TaskFlow.Tests.Services
 {
@@ -45,7 +47,6 @@ namespace TaskFlow.Tests.Services
         [Fact]
         public async Task CreateTaskAsync_ShouldCreateTask_WhenProjectExists()
         {
-            // Arrange
             var userId = "user-1";
             var projectId = Guid.NewGuid();
 
@@ -72,16 +73,14 @@ namespace TaskFlow.Tests.Services
                         OwnerId = userId
                     }
                 }
-            }.AsQueryable();
+            }.AsAsyncQueryable();
 
             _projectRepositoryMock
                 .Setup(repo => repo.Query())
                 .Returns(projects);
 
-            // Act
             await _taskService.CreateTaskAsync(dto, userId);
 
-            // Assert
             _taskRepositoryMock.Verify(
                 repo => repo.AddAsync(It.Is<TaskItem>(task =>
                     task.Title == dto.Title &&
@@ -100,13 +99,12 @@ namespace TaskFlow.Tests.Services
                     It.Is<string>(message => message.Contains(dto.Title))),
                 Times.Once);
 
-            _eventBusMock.Verify(bus => bus.PublishAsync(It.IsAny<TaskCreatedEvent>()),Times.Once);
+            _eventBusMock.Verify(bus => bus.PublishAsync(It.IsAny<TaskCreatedEvent>()), Times.Once);
         }
 
         [Fact]
         public async Task CreateTaskAsync_ShouldThrowNotFound_WhenProjectDoesNotBelongToUser()
         {
-            // Arrange
             var userId = "user-1";
             var anotherUserId = "user-2";
             var projectId = Guid.NewGuid();
@@ -134,16 +132,14 @@ namespace TaskFlow.Tests.Services
                         OwnerId = anotherUserId
                     }
                 }
-            }.AsQueryable();
+            }.AsAsyncQueryable();
 
             _projectRepositoryMock
                 .Setup(repo => repo.Query())
                 .Returns(projects);
 
-            // Act
             var act = async () => await _taskService.CreateTaskAsync(dto, userId);
 
-            // Assert
             await act.Should()
                 .ThrowAsync<NotFoundException>()
                 .WithMessage("Project not found.");
@@ -161,6 +157,61 @@ namespace TaskFlow.Tests.Services
                     It.IsAny<string>(),
                     It.IsAny<string>()),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task CreateTaskAsync_ShouldCreateTask_WhenUserIsActiveWorkspaceMember()
+        {
+            var userId = "user-2";
+            var ownerId = "owner-1";
+            var projectId = Guid.NewGuid();
+
+            var dto = new CreateTaskDto
+            {
+                Title = "Member task",
+                Description = "Task by workspace member",
+                ProjectId = projectId
+            };
+
+            var projects = new List<Project>
+            {
+                new Project
+                {
+                    Id = projectId,
+                    Name = "Project",
+                    Description = "Project description",
+                    WorkspaceId = Guid.NewGuid(),
+                    Workspace = new Workspace
+                    {
+                        Id = Guid.NewGuid(),
+                        Name = "Workspace",
+                        Description = "Workspace description",
+                        OwnerId = ownerId,
+                        Members =
+                        {
+                            new WorkspaceMember
+                            {
+                                Id = Guid.NewGuid(),
+                                UserId = userId,
+                                Role = WorkspaceRole.Member,
+                                Status = WorkspaceMemberStatus.Active
+                            }
+                        }
+                    }
+                }
+            }.AsAsyncQueryable();
+
+            _projectRepositoryMock
+                .Setup(repo => repo.Query())
+                .Returns(projects);
+
+            await _taskService.CreateTaskAsync(dto, userId);
+
+            _taskRepositoryMock.Verify(
+                repo => repo.AddAsync(It.Is<TaskItem>(task =>
+                    task.Title == dto.Title &&
+                    task.ProjectId == dto.ProjectId)),
+                Times.Once);
         }
     }
 }

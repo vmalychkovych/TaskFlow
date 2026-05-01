@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Connections;
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.DTOs;
 using TaskFlow.Application.Interfaces;
 using TaskFlow.Domain.Entities;
+using TaskFlow.Domain.Enums;
 
 namespace TaskFlow.Application.Services
 {
@@ -24,7 +24,18 @@ namespace TaskFlow.Application.Services
                 Id = Guid.NewGuid(),
                 Name = dto.Name,
                 Description = dto.Description,
-                OwnerId = userId
+                OwnerId = userId,
+                Members =
+                {
+                    new WorkspaceMember
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        Role = WorkspaceRole.Owner,
+                        Status = WorkspaceMemberStatus.Active,
+                        JoinedAt = DateTime.UtcNow
+                    }
+                }
             };
 
             await _workspaceRepository.AddAsync(workspace);
@@ -33,9 +44,8 @@ namespace TaskFlow.Application.Services
 
         public async Task<List<WorkspaceDto>> GetAllWorkspacesAsync(string userId)
         {
-            // Each user should only see workspaces that belong to them.
             var workspaces = await _workspaceRepository.Query()
-                .Where(workspace => workspace.OwnerId == userId)
+                .Where(workspace => CanAccessWorkspace(workspace, userId))
                 .ToListAsync();
 
             return workspaces.Select(workspace => new WorkspaceDto
@@ -48,9 +58,8 @@ namespace TaskFlow.Application.Services
 
         public async Task<WorkspaceDto?> GetWorkspaceByIdAsync(Guid id, string userId)
         {
-            // Ownership is checked in the query to avoid exposing other users' workspaces by id.
             var workspace = await _workspaceRepository.Query()
-                .FirstOrDefaultAsync(workspace => workspace.Id == id && workspace.OwnerId == userId);
+                .FirstOrDefaultAsync(workspace => workspace.Id == id && CanAccessWorkspace(workspace, userId));
 
             if (workspace == null)
             {
@@ -68,7 +77,7 @@ namespace TaskFlow.Application.Services
         public async Task<bool> UpdateWorkspaceAsync(Guid id, UpdateWorkspaceDto dto, string userId)
         {
             var workspace = await _workspaceRepository.Query()
-                .FirstOrDefaultAsync(workspace => workspace.Id == id && workspace.OwnerId == userId);
+                .FirstOrDefaultAsync(workspace => workspace.Id == id && CanManageWorkspace(workspace, userId));
 
             if (workspace == null)
             {
@@ -88,7 +97,7 @@ namespace TaskFlow.Application.Services
         public async Task<bool> DeleteWorkspaceAsync(Guid id, string userId)
         {
             var workspace = await _workspaceRepository.Query()
-                .FirstOrDefaultAsync(workspace => workspace.Id == id && workspace.OwnerId == userId);
+                .FirstOrDefaultAsync(workspace => workspace.Id == id && IsWorkspaceOwner(workspace, userId));
 
             if (workspace == null)
             {
@@ -102,7 +111,6 @@ namespace TaskFlow.Application.Services
             return true;
         }
 
-
         public async Task<WorkspaceDetailsDto?> GetWorkspaceDetailsAsync(Guid id, string userId)
         {
             var cacheKey = $"workspace_details:{userId}:{id}";
@@ -114,11 +122,10 @@ namespace TaskFlow.Application.Services
                 return cachedWorkspace;
             }
 
-            // Load the full hierarchy in one query for the details endpoint.
             var workspace = await _workspaceRepository.Query()
                 .Include(workspace => workspace.Projects)
                 .ThenInclude(project => project.Tasks)
-                .FirstOrDefaultAsync(workspace => workspace.Id == id && workspace.OwnerId == userId);
+                .FirstOrDefaultAsync(workspace => workspace.Id == id && CanAccessWorkspace(workspace, userId));
 
             if (workspace == null)
             {
@@ -151,6 +158,32 @@ namespace TaskFlow.Application.Services
             await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(5));
 
             return result;
+        }
+
+        private static bool CanAccessWorkspace(Workspace workspace, string userId)
+        {
+            return workspace.OwnerId == userId ||
+                   workspace.Members.Any(member =>
+                       member.UserId == userId &&
+                       member.Status == WorkspaceMemberStatus.Active);
+        }
+
+        private static bool CanManageWorkspace(Workspace workspace, string userId)
+        {
+            return workspace.OwnerId == userId ||
+                   workspace.Members.Any(member =>
+                       member.UserId == userId &&
+                       member.Status == WorkspaceMemberStatus.Active &&
+                       (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin));
+        }
+
+        private static bool IsWorkspaceOwner(Workspace workspace, string userId)
+        {
+            return workspace.OwnerId == userId ||
+                   workspace.Members.Any(member =>
+                       member.UserId == userId &&
+                       member.Status == WorkspaceMemberStatus.Active &&
+                       member.Role == WorkspaceRole.Owner);
         }
     }
 }
