@@ -166,6 +166,11 @@ namespace TaskFlow.Application.Services
                         member.UserId == userId &&
                         member.Status == ProjectMemberStatus.Active));
 
+            if (query.ProjectId.HasValue)
+            {
+                tasksQuery = tasksQuery.Where(task => task.ProjectId == query.ProjectId.Value);
+            }
+
             if (query.Priority.HasValue)
             {
                 tasksQuery = tasksQuery.Where(task => task.Priority == query.Priority.Value);
@@ -179,6 +184,10 @@ namespace TaskFlow.Application.Services
             if (query.AssignedToMe)
             {
                 tasksQuery = tasksQuery.Where(task => task.AssigneeUserId == userId);
+            }
+            else if (query.UnassignedOnly)
+            {
+                tasksQuery = tasksQuery.Where(task => task.AssigneeUserId == null);
             }
             else if (!string.IsNullOrWhiteSpace(query.AssigneeUserId))
             {

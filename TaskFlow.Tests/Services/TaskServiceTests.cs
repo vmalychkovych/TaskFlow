@@ -246,6 +246,96 @@ namespace TaskFlow.Tests.Services
         }
 
         [Fact]
+        public async Task GetTasksAsync_ShouldReturnOnlyTasksFromRequestedProject_WhenProjectIdIsProvided()
+        {
+            var userId = "member-1";
+            var targetProjectId = Guid.NewGuid();
+            var otherProjectId = Guid.NewGuid();
+
+            _taskRepositoryMock
+                .Setup(repo => repo.Query())
+                .Returns(new List<TaskItem>
+                {
+                    new()
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = "Target task",
+                        Description = "In requested project",
+                        CreatedAt = DateTime.UtcNow,
+                        Priority = TaskPriority.Medium,
+                        Status = TaskItemStatus.ToDo,
+                        ProjectId = targetProjectId,
+                        AssigneeUserId = userId,
+                        Project = BuildAccessibleProject(targetProjectId, userId)
+                    },
+                    new()
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = "Other task",
+                        Description = "In another project",
+                        CreatedAt = DateTime.UtcNow,
+                        Priority = TaskPriority.Medium,
+                        Status = TaskItemStatus.ToDo,
+                        ProjectId = otherProjectId,
+                        AssigneeUserId = userId,
+                        Project = BuildAccessibleProject(otherProjectId, userId)
+                    }
+                }.AsAsyncQueryable());
+
+            var result = await _taskService.GetTasksAsync(new TaskQuery
+            {
+                AssignedToMe = true,
+                ProjectId = targetProjectId
+            }, userId);
+
+            result.Items.Should().ContainSingle(task => task.Title == "Target task");
+        }
+
+        [Fact]
+        public async Task GetTasksAsync_ShouldReturnOnlyUnassignedTasks_WhenUnassignedOnlyIsTrue()
+        {
+            var userId = "member-1";
+            var projectId = Guid.NewGuid();
+
+            _taskRepositoryMock
+                .Setup(repo => repo.Query())
+                .Returns(new List<TaskItem>
+                {
+                    new()
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = "Unassigned",
+                        Description = "No assignee",
+                        CreatedAt = DateTime.UtcNow,
+                        Priority = TaskPriority.Medium,
+                        Status = TaskItemStatus.ToDo,
+                        ProjectId = projectId,
+                        AssigneeUserId = null,
+                        Project = BuildAccessibleProject(projectId, userId)
+                    },
+                    new()
+                    {
+                        Id = Guid.NewGuid(),
+                        Title = "Assigned",
+                        Description = "Has assignee",
+                        CreatedAt = DateTime.UtcNow,
+                        Priority = TaskPriority.Medium,
+                        Status = TaskItemStatus.ToDo,
+                        ProjectId = projectId,
+                        AssigneeUserId = userId,
+                        Project = BuildAccessibleProject(projectId, userId)
+                    }
+                }.AsAsyncQueryable());
+
+            var result = await _taskService.GetTasksAsync(new TaskQuery
+            {
+                UnassignedOnly = true
+            }, userId);
+
+            result.Items.Should().ContainSingle(task => task.Title == "Unassigned");
+        }
+
+        [Fact]
         public async Task UpdateTaskAsync_ShouldClearAssignee_WhenAssigneeUserIdIsNull()
         {
             var userId = "owner-1";

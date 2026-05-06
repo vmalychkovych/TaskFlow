@@ -32,6 +32,28 @@ namespace TaskFlow.WebAPI.Controllers
             return Ok(result);
         }
 
+        [HttpGet("my")]
+        public async Task<IActionResult> GetMyTasks([FromQuery] TaskQuery query)
+        {
+            query.AssignedToMe = true;
+            query.UnassignedOnly = false;
+            query.AssigneeUserId = null;
+
+            var result = await _taskService.GetTasksAsync(query, GetUserId());
+            return Ok(result);
+        }
+
+        [HttpGet("unassigned")]
+        public async Task<IActionResult> GetUnassignedTasks([FromQuery] TaskQuery query)
+        {
+            query.AssignedToMe = false;
+            query.UnassignedOnly = true;
+            query.AssigneeUserId = null;
+
+            var result = await _taskService.GetTasksAsync(query, GetUserId());
+            return Ok(result);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
