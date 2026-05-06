@@ -1,8 +1,10 @@
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using TaskFlow.Application.Validators;
+using TaskFlow.Infrastructure.Persistence;
 using TaskFlow.WebAPI.Extensions;
 using TaskFlow.WebAPI.Hubs;
 
@@ -83,6 +85,8 @@ app.UseCustomExceptionMiddleware();
 app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 app.UseCors("AllowLocalhost");
 
@@ -93,7 +97,10 @@ app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
+    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await dbContext.Database.MigrateAsync();
     await RoleSeeder.SeedRolesAsync(scope.ServiceProvider);
+    await AdminUserSeeder.SeedAdminAsync(scope.ServiceProvider);
 }
 
 app.MapHub<NotificationHub>("/hubs/notifications");

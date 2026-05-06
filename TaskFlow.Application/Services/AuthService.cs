@@ -55,7 +55,8 @@ public class AuthService : IAuthService
 
     public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
     {
-        var user = await _userManager.FindByEmailAsync(dto.Email);
+        var user = await _userManager.FindByEmailAsync(dto.Email)
+            ?? await _userManager.FindByNameAsync(dto.Email);
 
         if (user == null)
         {
