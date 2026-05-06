@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.VisualStudio.JavaScript.SDK/1.0.4991845">
+  <PropertyGroup>
+    <ShouldRunNpmInstall>false</ShouldRunNpmInstall>
+    <ShouldRunBuildScript>false</ShouldRunBuildScript>
+    <BuildCommand>npm run build</BuildCommand>
+    <StartupCommand>npm run dev -- --hostname 127.0.0.1 --port 3000</StartupCommand>
+  </PropertyGroup>
+</Project>

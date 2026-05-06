@@ -1,0 +1,11 @@
+[
+  {
+    "Name": "TaskFlow Full Stack",
+    "Projects": [
+      {
+        "Path": "TaskFlow.DevLauncher\\TaskFlow.DevLauncher.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
