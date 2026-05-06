@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TaskFlow.Application.DTOs;
+using TaskFlow.Application.Exceptions;
 using TaskFlow.Application.Interfaces;
 using TaskFlow.Domain.Entities;
 using TaskFlow.Domain.Enums;
@@ -10,11 +12,16 @@ namespace TaskFlow.Application.Services
     {
         private readonly IGenericRepository<Workspace> _workspaceRepository;
         private readonly ICacheService _cacheService;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public WorkspaceService(IGenericRepository<Workspace> workspaceRepository, ICacheService cacheService)
+        public WorkspaceService(
+            IGenericRepository<Workspace> workspaceRepository,
+            ICacheService cacheService,
+            UserManager<ApplicationUser> userManager)
         {
             _workspaceRepository = workspaceRepository;
             _cacheService = cacheService;
+            _userManager = userManager;
         }
 
         public async Task CreateWorkspaceAsync(CreateWorkspaceDto dto, string userId)
@@ -184,6 +191,148 @@ namespace TaskFlow.Application.Services
             await _cacheService.SetAsync(cacheKey, result, TimeSpan.FromMinutes(5));
 
             return result;
+        }
+
+        public async Task<List<WorkspaceMemberDto>> GetWorkspaceMembersAsync(Guid id, string userId)
+        {
+            var workspace = await _workspaceRepository.Query()
+                .Include(currentWorkspace => currentWorkspace.Members)
+                .FirstOrDefaultAsync(currentWorkspace =>
+                    currentWorkspace.Id == id &&
+                    (currentWorkspace.OwnerId == userId ||
+                     currentWorkspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active)));
+
+            if (workspace == null)
+            {
+                throw new NotFoundException("Workspace not found.");
+            }
+
+            return workspace.Members
+                .Where(member => member.Status == WorkspaceMemberStatus.Active)
+                .Select(member => new WorkspaceMemberDto
+                {
+                    UserId = member.UserId,
+                    Role = member.Role.ToString(),
+                    Status = member.Status.ToString(),
+                    JoinedAt = member.JoinedAt
+                })
+                .ToList();
+        }
+
+        public async Task AddWorkspaceMemberAsync(Guid id, AddWorkspaceMemberDto dto, string userId)
+        {
+            var workspace = await _workspaceRepository.Query()
+                .Include(currentWorkspace => currentWorkspace.Members)
+                .FirstOrDefaultAsync(currentWorkspace =>
+                    currentWorkspace.Id == id &&
+                    IsWorkspaceAdminOrOwner(currentWorkspace, userId));
+
+            if (workspace == null)
+            {
+                throw new NotFoundException("Workspace not found.");
+            }
+
+            var targetUser = await _userManager.FindByIdAsync(dto.UserId);
+            if (targetUser == null)
+            {
+                throw new NotFoundException("User not found.");
+            }
+
+            var existingMember = workspace.Members.FirstOrDefault(member => member.UserId == dto.UserId);
+
+            if (existingMember != null && existingMember.Status == WorkspaceMemberStatus.Active)
+            {
+                throw new BadRequestException("User is already an active workspace member.");
+            }
+
+            if (existingMember != null)
+            {
+                existingMember.Role = dto.Role;
+                existingMember.Status = WorkspaceMemberStatus.Active;
+                existingMember.JoinedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                workspace.Members.Add(new WorkspaceMember
+                {
+                    Id = Guid.NewGuid(),
+                    WorkspaceId = workspace.Id,
+                    UserId = dto.UserId,
+                    Role = dto.Role,
+                    Status = WorkspaceMemberStatus.Active,
+                    JoinedAt = DateTime.UtcNow
+                });
+            }
+
+            _workspaceRepository.Update(workspace);
+            await _workspaceRepository.SaveChangesAsync();
+            await _cacheService.RemoveAsync($"workspace_details:{userId}:{id}");
+        }
+
+        public async Task<bool> RemoveWorkspaceMemberAsync(Guid id, string memberUserId, string userId)
+        {
+            var workspace = await _workspaceRepository.Query()
+                .Include(currentWorkspace => currentWorkspace.Members)
+                .Include(currentWorkspace => currentWorkspace.Projects)
+                .ThenInclude(project => project.Members)
+                .Include(currentWorkspace => currentWorkspace.Projects)
+                .ThenInclude(project => project.Tasks)
+                .FirstOrDefaultAsync(currentWorkspace =>
+                    currentWorkspace.Id == id &&
+                    IsWorkspaceAdminOrOwner(currentWorkspace, userId));
+
+            if (workspace == null)
+            {
+                return false;
+            }
+
+            var member = workspace.Members.FirstOrDefault(existingMember =>
+                existingMember.UserId == memberUserId &&
+                existingMember.Status == WorkspaceMemberStatus.Active);
+
+            if (member == null)
+            {
+                return false;
+            }
+
+            if (member.Role == WorkspaceRole.Owner)
+            {
+                throw new BadRequestException("Workspace owner cannot be removed.");
+            }
+
+            member.Status = WorkspaceMemberStatus.Removed;
+
+            foreach (var project in workspace.Projects)
+            {
+                foreach (var projectMember in project.Members.Where(projectMember =>
+                             projectMember.UserId == memberUserId &&
+                             projectMember.Status == ProjectMemberStatus.Active))
+                {
+                    projectMember.Status = ProjectMemberStatus.Removed;
+                }
+
+                foreach (var task in project.Tasks.Where(task => task.AssigneeUserId == memberUserId))
+                {
+                    task.AssigneeUserId = null;
+                }
+            }
+
+            _workspaceRepository.Update(workspace);
+            await _workspaceRepository.SaveChangesAsync();
+            await _cacheService.RemoveAsync($"workspace_details:{userId}:{id}");
+
+            return true;
+        }
+
+        private static bool IsWorkspaceAdminOrOwner(Workspace workspace, string userId)
+        {
+            return workspace.OwnerId == userId ||
+                   workspace.Members.Any(member =>
+                       member.UserId == userId &&
+                       member.Status == WorkspaceMemberStatus.Active &&
+                       (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin));
         }
     }
 }

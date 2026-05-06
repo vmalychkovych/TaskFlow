@@ -11,5 +11,8 @@ namespace TaskFlow.Application.Interfaces
         Task<bool> UpdateWorkspaceAsync(Guid id, UpdateWorkspaceDto dto, string userId);
         Task<bool> DeleteWorkspaceAsync(Guid id, string userId);
         Task<WorkspaceDetailsDto?> GetWorkspaceDetailsAsync(Guid id, string userId);
+        Task<List<WorkspaceMemberDto>> GetWorkspaceMembersAsync(Guid id, string userId);
+        Task AddWorkspaceMemberAsync(Guid id, AddWorkspaceMemberDto dto, string userId);
+        Task<bool> RemoveWorkspaceMemberAsync(Guid id, string memberUserId, string userId);
     }
 }
