@@ -15,6 +15,7 @@ namespace TaskFlow.Infrastructure.Persistence
         public DbSet<WorkspaceMember> WorkspaceMembers { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<ProjectMember> ProjectMembers { get; set; }
+        public DbSet<ProjectDiscordIntegration> ProjectDiscordIntegrations { get; set; }
         public DbSet<TaskItem> Tasks { get; set; }
         public DbSet<TaskComment> TaskComments { get; set; }
         public DbSet<TaskAttachment> TaskAttachments { get; set; }
@@ -33,6 +34,12 @@ namespace TaskFlow.Infrastructure.Persistence
                 .HasMany(project => project.Members)
                 .WithOne(member => member.Project)
                 .HasForeignKey(member => member.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Project>()
+                .HasOne(project => project.DiscordIntegration)
+                .WithOne(integration => integration.Project)
+                .HasForeignKey<ProjectDiscordIntegration>(integration => integration.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Workspace>()
@@ -71,6 +78,10 @@ namespace TaskFlow.Infrastructure.Persistence
 
             modelBuilder.Entity<ProjectMember>()
                 .HasIndex(member => new { member.ProjectId, member.UserId })
+                .IsUnique();
+
+            modelBuilder.Entity<ProjectDiscordIntegration>()
+                .HasIndex(integration => integration.ProjectId)
                 .IsUnique();
 
             modelBuilder.Entity<TaskItem>()

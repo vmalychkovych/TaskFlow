@@ -1,4 +1,4 @@
-﻿using RabbitMQ.Client;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
@@ -7,14 +7,14 @@ using TaskFlow.Application.Interfaces;
 
 namespace TaskFlow.WebAPI.BackgroundServices
 {
-    public class TaskCreatedEventConsumer : BackgroundService
+    public class TaskUpdatedEventConsumer : BackgroundService
     {
-        private readonly ILogger<TaskCreatedEventConsumer> _logger;
+        private readonly ILogger<TaskUpdatedEventConsumer> _logger;
+        private readonly IServiceScopeFactory _scopeFactory;
         private IConnection? _connection;
         private IModel? _channel;
-        private readonly IServiceScopeFactory _scopeFactory;
 
-        public TaskCreatedEventConsumer(ILogger<TaskCreatedEventConsumer> logger, IServiceScopeFactory scopeFactory)
+        public TaskUpdatedEventConsumer(ILogger<TaskUpdatedEventConsumer> logger, IServiceScopeFactory scopeFactory)
         {
             _logger = logger;
             _scopeFactory = scopeFactory;
@@ -33,7 +33,7 @@ namespace TaskFlow.WebAPI.BackgroundServices
             _channel = _connection.CreateModel();
 
             _channel.QueueDeclare(
-                queue: nameof(TaskCreatedEvent),
+                queue: nameof(TaskUpdatedEvent),
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
@@ -41,51 +41,43 @@ namespace TaskFlow.WebAPI.BackgroundServices
 
             var consumer = new EventingBasicConsumer(_channel);
 
-            consumer.Received += async (sender, args) =>
+            consumer.Received += async (_, args) =>
             {
                 try
                 {
                     var body = args.Body.ToArray();
                     var json = Encoding.UTF8.GetString(body);
+                    var taskUpdatedEvent = JsonSerializer.Deserialize<TaskUpdatedEvent>(json);
 
-                    var taskCreatedEvent = JsonSerializer.Deserialize<TaskCreatedEvent>(json);
-
-                    if (taskCreatedEvent == null)
+                    if (taskUpdatedEvent == null)
                     {
-                        _logger.LogWarning("Received invalid TaskCreatedEvent message");
+                        _logger.LogWarning("Received invalid TaskUpdatedEvent message");
                         _channel.BasicAck(args.DeliveryTag, multiple: false);
                         return;
                     }
 
                     _logger.LogInformation(
-                        "Task created event consumed. TaskId: {TaskId}, ProjectId: {ProjectId}, Title: {Title}, UserId: {UserId}",
-                        taskCreatedEvent.TaskId,
-                        taskCreatedEvent.ProjectId,
-                        taskCreatedEvent.Title,
-                        taskCreatedEvent.UserId);
+                        "Task updated event consumed. TaskId: {TaskId}, ProjectId: {ProjectId}, Status: {Status}, UserId: {UserId}",
+                        taskUpdatedEvent.TaskId,
+                        taskUpdatedEvent.ProjectId,
+                        taskUpdatedEvent.Status,
+                        taskUpdatedEvent.UserId);
 
                     using var scope = _scopeFactory.CreateScope();
-
-                    var discordService = scope.ServiceProvider
-                        .GetRequiredService<IDiscordNotificationService>();
-
-                    await discordService.SendTaskCreatedAsync(taskCreatedEvent);
+                    var discordService = scope.ServiceProvider.GetRequiredService<IDiscordNotificationService>();
+                    await discordService.SendTaskUpdatedAsync(taskUpdatedEvent);
 
                     _channel.BasicAck(args.DeliveryTag, multiple: false);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error while consuming TaskCreatedEvent");
-
-                    _channel.BasicNack(
-                        deliveryTag: args.DeliveryTag,
-                        multiple: false,
-                        requeue: true);
+                    _logger.LogError(ex, "Error while consuming TaskUpdatedEvent");
+                    _channel.BasicNack(args.DeliveryTag, multiple: false, requeue: true);
                 }
             };
 
             _channel.BasicConsume(
-                queue: nameof(TaskCreatedEvent),
+                queue: nameof(TaskUpdatedEvent),
                 autoAck: false,
                 consumer: consumer);
 

@@ -28,6 +28,7 @@ namespace TaskFlow.WebAPI.Extensions
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             services.AddScoped<ITaskService, TaskService>();
             services.AddScoped<IProjectService, ProjectService>();
+            services.AddScoped<IProjectDiscordIntegrationService, ProjectDiscordIntegrationService>();
             services.AddScoped<IWorkspaceService, WorkspaceService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<ITaskCommentService, TaskCommentService>();
@@ -40,6 +41,7 @@ namespace TaskFlow.WebAPI.Extensions
             services.AddScoped<INotificationService, SignalRNotificationService>();
             services.AddSingleton<IEventBus, RabbitMQEventBus>();
             services.AddHostedService<TaskCreatedEventConsumer>();
+            services.AddHostedService<TaskUpdatedEventConsumer>();
             services.AddHttpClient<IDiscordNotificationService, DiscordNotificationService>();
 
             var jwtKey = configuration["Jwt:Key"];

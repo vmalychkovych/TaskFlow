@@ -13,10 +13,12 @@ namespace TaskFlow.WebAPI.Controllers
     public class ProjectsController : ControllerBase
     {
         private readonly IProjectService _projectService;
+        private readonly IProjectDiscordIntegrationService _projectDiscordIntegrationService;
 
-        public ProjectsController(IProjectService projectService)
+        public ProjectsController(IProjectService projectService, IProjectDiscordIntegrationService projectDiscordIntegrationService)
         {
             _projectService = projectService;
+            _projectDiscordIntegrationService = projectDiscordIntegrationService;
         }
 
         [HttpPost]
@@ -109,6 +111,27 @@ namespace TaskFlow.WebAPI.Controllers
             }
 
             return NoContent();
+        }
+
+        [HttpGet("{id}/discord")]
+        public async Task<IActionResult> GetDiscordIntegration(Guid id)
+        {
+            var integration = await _projectDiscordIntegrationService.GetAsync(id, GetUserId());
+            return integration == null ? NotFound() : Ok(integration);
+        }
+
+        [HttpPut("{id}/discord")]
+        public async Task<IActionResult> UpsertDiscordIntegration(Guid id, ConfigureProjectDiscordDto dto)
+        {
+            var integration = await _projectDiscordIntegrationService.UpsertAsync(id, dto, GetUserId());
+            return Ok(integration);
+        }
+
+        [HttpDelete("{id}/discord")]
+        public async Task<IActionResult> DeleteDiscordIntegration(Guid id)
+        {
+            var result = await _projectDiscordIntegrationService.DeleteAsync(id, GetUserId());
+            return result ? NoContent() : NotFound();
         }
 
         private string GetUserId()

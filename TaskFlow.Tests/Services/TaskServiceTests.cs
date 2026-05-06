@@ -280,6 +280,11 @@ namespace TaskFlow.Tests.Services
 
             result.Should().BeTrue();
             task.AssigneeUserId.Should().BeNull();
+            _eventBusMock.Verify(bus => bus.PublishAsync(It.Is<TaskUpdatedEvent>(taskUpdatedEvent =>
+                taskUpdatedEvent.TaskId == taskId &&
+                taskUpdatedEvent.ProjectId == projectId &&
+                taskUpdatedEvent.Status == TaskItemStatus.InProgress.ToString() &&
+                taskUpdatedEvent.AssigneeUserId == null)), Times.Once);
         }
 
         private static Project BuildAccessibleProject(Guid projectId, string memberUserId)

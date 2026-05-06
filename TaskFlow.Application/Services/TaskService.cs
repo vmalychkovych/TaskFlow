@@ -64,6 +64,7 @@ namespace TaskFlow.Application.Services
             await _eventBus.PublishAsync(new TaskCreatedEvent
             {
                 TaskId = task.Id,
+                ProjectId = task.ProjectId,
                 Title = task.Title,
                 UserId = userId
             });
@@ -116,6 +117,15 @@ namespace TaskFlow.Application.Services
 
             _taskRepository.Update(task);
             await _taskRepository.SaveChangesAsync();
+            await _eventBus.PublishAsync(new TaskUpdatedEvent
+            {
+                TaskId = task.Id,
+                ProjectId = task.ProjectId,
+                Title = task.Title,
+                Status = task.Status.ToString(),
+                AssigneeUserId = task.AssigneeUserId,
+                UserId = userId
+            });
 
             return true;
         }
