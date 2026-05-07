@@ -79,6 +79,7 @@ export type ProjectMember = {
 
 export type ProjectDiscordIntegration = {
   projectId: string;
+  projectName: string;
   webhookUrl: string;
   isEnabled: boolean;
   updatedAt: string;

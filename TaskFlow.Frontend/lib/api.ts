@@ -70,13 +70,15 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 async function readErrorMessage(response: Response) {
   const fallback = `Request failed with status ${response.status}.`;
   const contentType = response.headers.get("content-type") ?? "";
+  const looksLikeJson = contentType.includes("json") || contentType.includes("problem+json");
 
-  if (contentType.includes("application/json")) {
+  if (looksLikeJson) {
     try {
       const data = (await response.json()) as {
         detail?: string;
         errors?: Record<string, string[]>;
         message?: string;
+        status?: number;
         title?: string;
       };
 
@@ -87,7 +89,19 @@ async function readErrorMessage(response: Response) {
         }
       }
 
-      return data.detail || data.message || data.title || fallback;
+      if (data.detail) {
+        return data.detail;
+      }
+
+      if (data.message) {
+        return data.message;
+      }
+
+      if (data.status === 404 && data.title === "Not Found") {
+        return "Resource not found or the remote webhook responded with 404.";
+      }
+
+      return data.title || fallback;
     } catch {
       return fallback;
     }
@@ -95,6 +109,36 @@ async function readErrorMessage(response: Response) {
 
   try {
     const text = await response.text();
+
+    if (text.trim().startsWith("{")) {
+      try {
+        const parsed = JSON.parse(text) as {
+          detail?: string;
+          message?: string;
+          status?: number;
+          title?: string;
+        };
+
+        if (parsed.detail) {
+          return parsed.detail;
+        }
+
+        if (parsed.message) {
+          return parsed.message;
+        }
+
+        if (parsed.status === 404 && parsed.title === "Not Found") {
+          return "Resource not found or the remote webhook responded with 404.";
+        }
+
+        if (parsed.title) {
+          return parsed.title;
+        }
+      } catch {
+        // Ignore and fall back to raw text.
+      }
+    }
+
     return text.trim() || fallback;
   } catch {
     return fallback;
@@ -368,6 +412,8 @@ export function updateTask(
     token: session.accessToken,
     body: JSON.stringify({
       ...payload,
+      priority: mapTaskPriority(payload.priority),
+      status: mapTaskStatus(payload.status),
       assigneeUserId: payload.assigneeUserId || null,
     }),
   });
@@ -441,4 +487,32 @@ export function uploadTaskAttachment(
     token: session.accessToken,
     body: formData,
   });
+}
+
+function mapTaskPriority(priority: string) {
+  const normalized = priority.toLowerCase();
+
+  if (normalized.includes("low")) {
+    return 1;
+  }
+
+  if (normalized.includes("high")) {
+    return 3;
+  }
+
+  return 2;
+}
+
+function mapTaskStatus(status: string) {
+  const normalized = status.toLowerCase();
+
+  if (normalized.includes("progress")) {
+    return 2;
+  }
+
+  if (normalized.includes("done")) {
+    return 3;
+  }
+
+  return 1;
 }

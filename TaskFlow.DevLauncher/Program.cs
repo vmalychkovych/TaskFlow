@@ -15,6 +15,14 @@ var backendExecutablePath = Path.Combine(
     "TaskFlow.WebAPI.exe");
 var backendRuntimeDirectory = Path.Combine(repoRoot, ".dev-runtime", "backend");
 var frontendDirectory = Path.Combine(repoRoot, "TaskFlow.Frontend");
+var bundledNpmCliPath = Path.Combine(
+    repoRoot,
+    ".codex-temp",
+    "npm-cli",
+    "package",
+    "bin",
+    "npm-cli.js");
+var nodeExecutablePath = ResolveNodeExecutablePath();
 var frontendUrl = "http://127.0.0.1:3000";
 var backendUrl = "http://localhost:5240/swagger";
 
@@ -69,9 +77,13 @@ try
             Path.Combine(frontendDirectory, "package.json"),
             "TaskFlow.Frontend\\package.json is missing.");
 
-        await EnsureFrontendDependenciesAsync(frontendDirectory, shutdown.Token);
+        await EnsureFrontendDependenciesAsync(
+            frontendDirectory,
+            nodeExecutablePath,
+            bundledNpmCliPath,
+            shutdown.Token);
 
-        frontendProcess = StartFrontend(frontendDirectory);
+        frontendProcess = StartFrontend(frontendDirectory, nodeExecutablePath);
         AttachLogs(frontendProcess, "[frontend]");
     }
 
@@ -181,7 +193,11 @@ static void EnsureFileExists(string path, string message)
     }
 }
 
-static async Task EnsureFrontendDependenciesAsync(string frontendDirectory, CancellationToken cancellationToken)
+static async Task EnsureFrontendDependenciesAsync(
+    string frontendDirectory,
+    string nodeExecutablePath,
+    string bundledNpmCliPath,
+    CancellationToken cancellationToken)
 {
     if (Directory.Exists(Path.Combine(frontendDirectory, "node_modules")))
     {
@@ -190,15 +206,35 @@ static async Task EnsureFrontendDependenciesAsync(string frontendDirectory, Canc
 
     Console.WriteLine("Installing frontend dependencies...");
 
-    var exitCode = await RunCommandAsync(
-        "cmd.exe",
-        "/c npm install",
-        frontendDirectory,
-        cancellationToken);
+    int exitCode;
+
+    var npmCommandPath = ResolveExecutableOnPath("npm.cmd") ?? ResolveExecutableOnPath("npm.exe");
+
+    if (npmCommandPath != null)
+    {
+        exitCode = await RunCommandAsync(
+            "cmd.exe",
+            "/c npm install",
+            frontendDirectory,
+            cancellationToken);
+    }
+    else
+    {
+        EnsureFileExists(
+            bundledNpmCliPath,
+            "npm is not available in PATH and the bundled npm CLI fallback was not found.");
+
+        exitCode = await RunCommandAsync(
+            nodeExecutablePath,
+            $"\"{bundledNpmCliPath}\" install",
+            frontendDirectory,
+            cancellationToken);
+    }
 
     if (exitCode != 0)
     {
-        throw new InvalidOperationException("npm install failed. Make sure Node.js and npm are installed and available in PATH.");
+        throw new InvalidOperationException(
+            "Frontend dependency installation failed. Install Node.js or restore the bundled npm CLI fallback in .codex-temp.");
     }
 }
 
@@ -257,14 +293,14 @@ static Process StartBackend(string executablePath, string workingDirectory)
            ?? throw new InvalidOperationException("Failed to start the backend process.");
 }
 
-static Process StartFrontend(string frontendDirectory)
+static Process StartFrontend(string frontendDirectory, string nodeExecutablePath)
 {
     Console.WriteLine("Starting frontend...");
 
     var startInfo = new ProcessStartInfo
     {
-        FileName = "cmd.exe",
-        Arguments = "/c npm run dev -- --hostname 127.0.0.1 --port 3000",
+        FileName = nodeExecutablePath,
+        Arguments = "./node_modules/next/dist/bin/next dev --webpack --hostname 127.0.0.1 --port 3000",
         WorkingDirectory = frontendDirectory,
         UseShellExecute = false,
         RedirectStandardOutput = true,
@@ -272,9 +308,92 @@ static Process StartFrontend(string frontendDirectory)
     };
 
     startInfo.Environment["NEXT_PUBLIC_API_URL"] = "http://localhost:5240/api";
+    startInfo.Environment["npm_node_execpath"] = nodeExecutablePath;
 
     return Process.Start(startInfo)
            ?? throw new InvalidOperationException("Failed to start the frontend process.");
+}
+
+static string ResolveNodeExecutablePath()
+{
+    var nodePath =
+        ResolveExecutableOnPath("node.exe")
+        ?? ResolveExecutableOnPath("node")
+        ?? ResolveNodeFromKnownLocations();
+
+    if (nodePath == null)
+    {
+        throw new FileNotFoundException(
+            "Node.js was not found. Install Node.js or make sure the Codex runtime cache is available so the frontend can be launched.");
+    }
+
+    return nodePath;
+}
+
+static string? ResolveNodeFromKnownLocations()
+{
+    var candidates = new[]
+    {
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            ".cache",
+            "codex-runtimes",
+            "codex-primary-runtime",
+            "dependencies",
+            "node",
+            "bin",
+            "node.exe"),
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            "nodejs",
+            "node.exe"),
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+            "nodejs",
+            "node.exe"),
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "Programs",
+            "nodejs",
+            "node.exe"),
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+            "WindowsApps",
+            "OpenAI.Codex_26.429.8261.0_x64__2p2nqsd0c76g0",
+            "app",
+            "resources",
+            "node.exe"),
+    };
+
+    return candidates.FirstOrDefault(File.Exists);
+}
+
+static string? ResolveExecutableOnPath(string executableName)
+{
+    var pathValue = Environment.GetEnvironmentVariable("PATH");
+
+    if (string.IsNullOrWhiteSpace(pathValue))
+    {
+        return null;
+    }
+
+    foreach (var directory in pathValue.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+    {
+        try
+        {
+            var candidate = Path.Combine(directory.Trim(), executableName);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+        }
+        catch
+        {
+            // Ignore malformed PATH entries and continue scanning.
+        }
+    }
+
+    return null;
 }
 
 static void AttachLogs(Process process, string prefix)

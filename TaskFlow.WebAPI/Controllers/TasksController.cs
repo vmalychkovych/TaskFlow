@@ -19,7 +19,7 @@ namespace TaskFlow.WebAPI.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(CreateTaskDto dto)
+        public async Task<IActionResult> Create([FromBody] CreateTaskDto dto)
         {
             await _taskService.CreateTaskAsync(dto, GetUserId());
             return Ok();
@@ -68,7 +68,7 @@ namespace TaskFlow.WebAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, UpdateTaskDto dto)
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTaskDto dto)
         {
             var result = await _taskService.UpdateTaskAsync(id, dto, GetUserId());
 

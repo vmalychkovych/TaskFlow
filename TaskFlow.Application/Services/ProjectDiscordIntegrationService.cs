@@ -29,7 +29,16 @@ namespace TaskFlow.Application.Services
                 .Include(currentProject => currentProject.DiscordIntegration)
                 .FirstOrDefaultAsync(currentProject =>
                     currentProject.Id == projectId &&
-                    HasProjectAccess(currentProject, userId));
+                    (
+                        currentProject.Workspace.OwnerId == userId ||
+                        currentProject.Workspace.Members.Any(member =>
+                            member.UserId == userId &&
+                            member.Status == WorkspaceMemberStatus.Active &&
+                            (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                        currentProject.Members.Any(member =>
+                            member.UserId == userId &&
+                            member.Status == ProjectMemberStatus.Active)
+                    ));
 
             if (project == null)
             {
@@ -38,7 +47,7 @@ namespace TaskFlow.Application.Services
 
             return project.DiscordIntegration == null
                 ? null
-                : Map(project.DiscordIntegration);
+                : Map(project.DiscordIntegration, project.Name);
         }
 
         public async Task<ProjectDiscordIntegrationDto> UpsertAsync(Guid projectId, ConfigureProjectDiscordDto dto, string userId)
@@ -50,7 +59,17 @@ namespace TaskFlow.Application.Services
                 .Include(currentProject => currentProject.DiscordIntegration)
                 .FirstOrDefaultAsync(currentProject =>
                     currentProject.Id == projectId &&
-                    CanManageProject(currentProject, userId));
+                    (
+                        currentProject.Workspace.OwnerId == userId ||
+                        currentProject.Workspace.Members.Any(member =>
+                            member.UserId == userId &&
+                            member.Status == WorkspaceMemberStatus.Active &&
+                            (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                        currentProject.Members.Any(member =>
+                            member.UserId == userId &&
+                            member.Status == ProjectMemberStatus.Active &&
+                            member.Role == ProjectRole.ProjectAdmin)
+                    ));
 
             if (project == null)
             {
@@ -81,7 +100,7 @@ namespace TaskFlow.Application.Services
             }
 
             await _integrationRepository.SaveChangesAsync();
-            return Map(integration);
+            return Map(integration, project.Name);
         }
 
         public async Task<bool> DeleteAsync(Guid projectId, string userId)
@@ -93,7 +112,17 @@ namespace TaskFlow.Application.Services
                 .Include(currentProject => currentProject.DiscordIntegration)
                 .FirstOrDefaultAsync(currentProject =>
                     currentProject.Id == projectId &&
-                    CanManageProject(currentProject, userId));
+                    (
+                        currentProject.Workspace.OwnerId == userId ||
+                        currentProject.Workspace.Members.Any(member =>
+                            member.UserId == userId &&
+                            member.Status == WorkspaceMemberStatus.Active &&
+                            (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                        currentProject.Members.Any(member =>
+                            member.UserId == userId &&
+                            member.Status == ProjectMemberStatus.Active &&
+                            member.Role == ProjectRole.ProjectAdmin)
+                    ));
 
             if (project?.DiscordIntegration == null)
             {
@@ -105,41 +134,16 @@ namespace TaskFlow.Application.Services
             return true;
         }
 
-        private static ProjectDiscordIntegrationDto Map(ProjectDiscordIntegration integration)
+        private static ProjectDiscordIntegrationDto Map(ProjectDiscordIntegration integration, string projectName)
         {
             return new ProjectDiscordIntegrationDto
             {
                 ProjectId = integration.ProjectId,
+                ProjectName = projectName,
                 WebhookUrl = integration.WebhookUrl,
                 IsEnabled = integration.IsEnabled,
                 UpdatedAt = integration.UpdatedAt
             };
-        }
-
-        private static bool HasProjectAccess(Project project, string userId)
-        {
-            return IsWorkspaceAdminOrOwner(project.Workspace, userId) ||
-                   project.Members.Any(member =>
-                       member.UserId == userId &&
-                       member.Status == ProjectMemberStatus.Active);
-        }
-
-        private static bool CanManageProject(Project project, string userId)
-        {
-            return IsWorkspaceAdminOrOwner(project.Workspace, userId) ||
-                   project.Members.Any(member =>
-                       member.UserId == userId &&
-                       member.Status == ProjectMemberStatus.Active &&
-                       member.Role == ProjectRole.ProjectAdmin);
-        }
-
-        private static bool IsWorkspaceAdminOrOwner(Workspace workspace, string userId)
-        {
-            return workspace.OwnerId == userId ||
-                   workspace.Members.Any(member =>
-                       member.UserId == userId &&
-                       member.Status == WorkspaceMemberStatus.Active &&
-                       (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin));
         }
     }
 }

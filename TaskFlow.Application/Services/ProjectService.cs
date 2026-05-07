@@ -118,7 +118,15 @@ namespace TaskFlow.Application.Services
                 .Include(project => project.Tasks)
                 .FirstOrDefaultAsync(project =>
                     project.Id == id &&
-                    CanManageProject(project, userId));
+                    (project.Workspace.OwnerId == userId ||
+                     project.Workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                     project.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == ProjectMemberStatus.Active &&
+                         member.Role == ProjectRole.ProjectAdmin)));
 
             if (project == null)
             {
@@ -142,7 +150,15 @@ namespace TaskFlow.Application.Services
                 .Include(project => project.Members)
                 .FirstOrDefaultAsync(project =>
                     project.Id == id &&
-                    CanManageProject(project, userId));
+                    (project.Workspace.OwnerId == userId ||
+                     project.Workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                     project.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == ProjectMemberStatus.Active &&
+                         member.Role == ProjectRole.ProjectAdmin)));
 
             if (project == null)
             {
@@ -164,7 +180,14 @@ namespace TaskFlow.Application.Services
                 .Include(project => project.Tasks)
                 .FirstOrDefaultAsync(project =>
                     project.Id == id &&
-                    HasProjectAccess(project, userId));
+                    (project.Workspace.OwnerId == userId ||
+                     project.Workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                     project.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == ProjectMemberStatus.Active)));
 
             if (project == null)
             {
@@ -189,7 +212,14 @@ namespace TaskFlow.Application.Services
                 .Include(project => project.Members)
                 .FirstOrDefaultAsync(project =>
                     project.Id == id &&
-                    HasProjectAccess(project, userId));
+                    (project.Workspace.OwnerId == userId ||
+                     project.Workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                     project.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == ProjectMemberStatus.Active)));
 
             if (project == null)
             {
@@ -216,7 +246,15 @@ namespace TaskFlow.Application.Services
                 .Include(project => project.Members)
                 .FirstOrDefaultAsync(project =>
                     project.Id == id &&
-                    CanManageProject(project, userId));
+                    (project.Workspace.OwnerId == userId ||
+                     project.Workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                     project.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == ProjectMemberStatus.Active &&
+                         member.Role == ProjectRole.ProjectAdmin)));
 
             if (project == null)
             {
@@ -274,9 +312,18 @@ namespace TaskFlow.Application.Services
                 .Include(project => project.Workspace)
                 .ThenInclude(workspace => workspace.Members)
                 .Include(project => project.Members)
+                .Include(project => project.Tasks)
                 .FirstOrDefaultAsync(project =>
                     project.Id == id &&
-                    CanManageProject(project, userId));
+                    (project.Workspace.OwnerId == userId ||
+                     project.Workspace.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == WorkspaceMemberStatus.Active &&
+                         (member.Role == WorkspaceRole.Owner || member.Role == WorkspaceRole.Admin)) ||
+                     project.Members.Any(member =>
+                         member.UserId == userId &&
+                         member.Status == ProjectMemberStatus.Active &&
+                         member.Role == ProjectRole.ProjectAdmin)));
 
             if (project == null)
             {
@@ -307,24 +354,6 @@ namespace TaskFlow.Application.Services
 
             return true;
         }
-
-        private static bool HasProjectAccess(Project project, string userId)
-        {
-            return IsWorkspaceAdminOrOwner(project.Workspace, userId) ||
-                   project.Members.Any(member =>
-                       member.UserId == userId &&
-                       member.Status == ProjectMemberStatus.Active);
-        }
-
-        private static bool CanManageProject(Project project, string userId)
-        {
-            return IsWorkspaceAdminOrOwner(project.Workspace, userId) ||
-                   project.Members.Any(member =>
-                       member.UserId == userId &&
-                       member.Status == ProjectMemberStatus.Active &&
-                       member.Role == ProjectRole.ProjectAdmin);
-        }
-
         private static bool IsWorkspaceAdminOrOwner(Workspace workspace, string userId)
         {
             return workspace.OwnerId == userId ||

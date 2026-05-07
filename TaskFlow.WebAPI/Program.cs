@@ -85,8 +85,6 @@ app.UseCustomExceptionMiddleware();
 app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
-app.UseDefaultFiles();
-app.UseStaticFiles();
 
 app.UseCors("AllowLocalhost");
 
