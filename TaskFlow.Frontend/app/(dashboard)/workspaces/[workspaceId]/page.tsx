@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Building2, FolderKanban, Save, Trash2 } from "lucide-react";
+import { ArrowRight, Building2, FolderKanban, Plus, Save, Trash2, Users } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 
 import { AuthGate } from "@/components/auth/auth-gate";
@@ -10,6 +10,7 @@ import { DashboardPage } from "@/components/layout/dashboard-page";
 import { useAuth } from "@/components/providers/auth-provider";
 import { SectionCard } from "@/components/ui/section-card";
 import { useApiResource } from "@/hooks/use-api-resource";
+import { emitQuickCreate } from "@/lib/quick-create-events";
 import {
   deleteWorkspace,
   getWorkspaceDetails,
@@ -88,6 +89,18 @@ export default function WorkspaceDetailsPage() {
         title={state.item?.name ?? "Workspace"}
         description="This page sits directly on top of your workspace details, update, delete, and membership endpoints."
       >
+        {state.item ? (
+          <section className="grid gap-4 md:grid-cols-3">
+            <MetricCard label="Projects" value={state.item.projects.length} icon={FolderKanban} />
+            <MetricCard
+              label="Tasks inside"
+              value={state.item.projects.reduce((sum, project) => sum + project.tasks.length, 0)}
+              icon={ArrowRight}
+            />
+            <MetricCard label="Members" value="Manage" icon={Users} />
+          </section>
+        ) : null}
+
         <SectionCard
           title="Workspace settings"
           description="Rename the workspace, tighten the description, or remove it entirely if the space is no longer needed."
@@ -95,43 +108,43 @@ export default function WorkspaceDetailsPage() {
         >
           {state.loading ? (
             <div className="space-y-4">
-              <div className="h-14 animate-pulse rounded-2xl bg-white/70" />
-              <div className="h-36 animate-pulse rounded-2xl bg-white/70" />
+              <div className="h-14 animate-pulse rounded-2xl bg-white/8" />
+              <div className="h-36 animate-pulse rounded-2xl bg-white/8" />
             </div>
           ) : state.error ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <div className="status-message status-message--error">
               {state.error}
             </div>
           ) : (
             <form onSubmit={handleSave} className="grid gap-4 lg:grid-cols-2">
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-slate-700">Workspace name</span>
+                <span className="text-sm font-medium text-slate-300">Workspace name</span>
                 <input
                   type="text"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                  className="dashboard-input w-full rounded-2xl px-4 py-3"
                 />
               </label>
 
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-slate-700">Description</span>
+                <span className="text-sm font-medium text-slate-300">Description</span>
                 <textarea
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
                   rows={4}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                  className="dashboard-input w-full rounded-2xl px-4 py-3"
                 />
               </label>
 
               {message ? (
-                <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800 lg:col-span-2">
+                <div className="status-message status-message--success lg:col-span-2">
                   {message}
                 </div>
               ) : null}
 
               {actionError ? (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 lg:col-span-2">
+                <div className="status-message status-message--error lg:col-span-2">
                   {actionError}
                 </div>
               ) : null}
@@ -140,7 +153,7 @@ export default function WorkspaceDetailsPage() {
                 <button
                   type="submit"
                   disabled={saving || deleting || !name.trim()}
-                  className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Save className="h-4 w-4" />
                   {saving ? "Saving..." : "Save workspace"}
@@ -148,7 +161,7 @@ export default function WorkspaceDetailsPage() {
 
                 <Link
                   href={`/workspaces/${params.workspaceId}/members`}
-                  className="rounded-full border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  className="button-secondary rounded-full px-5 py-3 text-sm font-semibold"
                 >
                   Manage members
                 </Link>
@@ -157,7 +170,7 @@ export default function WorkspaceDetailsPage() {
                   type="button"
                   onClick={handleDelete}
                   disabled={saving || deleting}
-                  className="inline-flex items-center gap-2 rounded-full border border-rose-200 px-5 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-full border border-rose-400/24 bg-rose-500/6 px-5 py-3 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/12 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Trash2 className="h-4 w-4" />
                   {deleting ? "Deleting..." : "Delete workspace"}
@@ -169,35 +182,58 @@ export default function WorkspaceDetailsPage() {
 
         <SectionCard
           title="Projects in this workspace"
-          description="The details endpoint already returns nested projects, so this screen can branch directly into project-level work."
+          description="Use this workspace as the main hub: create projects here, open them, and then work inside their kanban boards."
           icon={FolderKanban}
         >
+          <div className="mb-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => emitQuickCreate({ target: "project", workspaceId: params.workspaceId })}
+              className="button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
+            >
+              <Plus className="h-4 w-4" />
+              Add project
+            </button>
+            <Link
+              href={`/workspaces/${params.workspaceId}/members`}
+              className="button-secondary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
+            >
+              <Users className="h-4 w-4" />
+              Workspace members
+            </Link>
+          </div>
+
           {state.item && state.item.projects.length > 0 ? (
             <div className="grid gap-4 lg:grid-cols-2">
               {state.item.projects.map((project) => (
                 <article
                   key={project.id}
-                  className="rounded-[1.5rem] border border-white/70 bg-white/90 p-5 shadow-sm"
+                  className="surface-card rounded-[1.75rem] p-5"
                 >
-                  <h3 className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-slate-950">
+                  <div className="mb-3 flex flex-wrap gap-2">
+                    <span className="chip-neutral rounded-full px-2.5 py-1 text-xs">
+                      {project.tasks.length} task{project.tasks.length === 1 ? "" : "s"}
+                    </span>
+                    <span className="chip-accent rounded-full px-2.5 py-1 text-xs">
+                      {project.tasks.filter((task) => task.status.toLowerCase().includes("done")).length} done
+                    </span>
+                  </div>
+                  <h3 className="text-gradient-soft font-[family-name:var(--font-heading)] text-2xl font-semibold">
                     {project.name}
                   </h3>
-                  <p className="mt-3 text-sm leading-7 text-slate-600">
+                  <p className="mt-3 text-sm leading-7 text-slate-300">
                     {project.description || "No description yet."}
-                  </p>
-                  <p className="mt-4 text-xs uppercase tracking-[0.2em] text-slate-400">
-                    {project.tasks.length} task{project.tasks.length === 1 ? "" : "s"}
                   </p>
                   <div className="mt-5 flex flex-wrap gap-2">
                     <Link
                       href={`/projects/${project.id}`}
-                      className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                      className="button-primary rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em]"
                     >
-                      Open project
+                      Open board
                     </Link>
                     <Link
                       href={`/projects/${project.id}/members`}
-                      className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                      className="button-secondary rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em]"
                     >
                       Members
                     </Link>
@@ -206,12 +242,34 @@ export default function WorkspaceDetailsPage() {
               ))}
             </div>
           ) : (
-            <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-5 py-8 text-sm text-slate-600">
+            <div className="rounded-[1.5rem] border border-dashed border-white/10 bg-white/5 px-5 py-8 text-sm text-slate-300">
               No projects connected to this workspace yet.
             </div>
           )}
         </SectionCard>
       </DashboardPage>
     </AuthGate>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: number | string;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
+  return (
+    <div className="surface-card rounded-[1.5rem] p-5">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{label}</p>
+        <Icon className="h-4 w-4 text-cyan-300" />
+      </div>
+      <p className="mt-4 font-[family-name:var(--font-heading)] text-4xl font-semibold text-white">
+        {value}
+      </p>
+    </div>
   );
 }

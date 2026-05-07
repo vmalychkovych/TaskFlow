@@ -1,91 +1,53 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
-import { FolderKanban } from "lucide-react";
+import { FolderKanban, Sparkles } from "lucide-react";
 
 import { AuthGate } from "@/components/auth/auth-gate";
-import { CreateResourceCard } from "@/components/forms/create-resource-card";
 import { DashboardPage } from "@/components/layout/dashboard-page";
-import { useAuth } from "@/components/providers/auth-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ResourceGrid } from "@/components/ui/resource-grid";
+import { SectionCard } from "@/components/ui/section-card";
 import { useApiList } from "@/hooks/use-api-list";
-import { createProject, getProjects, getWorkspaces } from "@/lib/api";
+import { getProjects, getWorkspaces } from "@/lib/api";
 import type { Project, Workspace } from "@/lib/types";
 
 export default function ProjectsPage() {
-  const { session } = useAuth();
   const state = useApiList<Project>(getProjects);
   const workspaceState = useApiList<Workspace>(getWorkspaces);
-  const [createError, setCreateError] = useState<string | null>(null);
-
-  const workspaceOptions = useMemo(
-    () =>
-      workspaceState.items.length > 0
-        ? workspaceState.items.map((workspace) => ({
-            label: workspace.name,
-            value: workspace.id,
-          }))
-        : [{ label: "Load workspaces first", value: "" }],
+  const workspaceNames = useMemo(
+    () => new Map(workspaceState.items.map((workspace) => [workspace.id, workspace.name])),
     [workspaceState.items],
   );
-
-  async function handleCreate(values: Record<string, string>) {
-    if (!session) {
-      return;
-    }
-
-    setCreateError(null);
-
-    try {
-      await createProject(session, {
-        name: values.name.trim(),
-        description: values.description.trim(),
-        workspaceId: values.workspaceId,
-      });
-      await state.reload();
-    } catch (error) {
-      setCreateError(error instanceof Error ? error.message : "Unable to create project.");
-    }
-  }
 
   return (
     <AuthGate>
       <DashboardPage
         eyebrow="Projects"
         title="Project inventory"
-        description="This list is already wired to your project access rules and gives you a natural home for member management and Discord settings."
+        description="Projects now stay cleaner too: create them from the sidebar modal, then use this page for browsing, member management, and Discord wiring."
       >
-        <CreateResourceCard
-          title="Create a project"
-          description="Attach a new project to one of your workspaces so tasks, members, and Discord routing have a proper home."
-          submitLabel="Create project"
-          savingLabel="Creating..."
-          textFields={[
-            { id: "name", label: "Project name", placeholder: "Launch Sprint Alpha" },
-            {
-              id: "description",
-              label: "Description",
-              placeholder: "What this project is trying to achieve",
-              type: "textarea",
-            },
-          ]}
-          selectFields={[
-            {
-              id: "workspaceId",
-              label: "Workspace",
-              options: workspaceOptions,
-            },
-          ]}
-          initialValues={{
-            name: "",
-            description: "",
-            workspaceId: workspaceOptions[0]?.value ?? "",
-          }}
-          error={createError ?? workspaceState.error}
-          onSubmit={handleCreate}
-        />
+        <SectionCard
+          title="Create from the sidebar"
+          description="Use the plus button next to Projects on the left. The modal already asks for the parent workspace, so project creation stays quick and structured."
+          icon={Sparkles}
+        >
+          <div className="flex flex-wrap gap-3 text-sm">
+            <span className="chip-accent rounded-full px-3 py-2 font-medium">
+              Projects +
+            </span>
+            <span className="chip-neutral rounded-full px-3 py-2">
+              Open project
+            </span>
+            <span className="chip-neutral rounded-full px-3 py-2">
+              Members
+            </span>
+            <span className="chip-neutral rounded-full px-3 py-2">
+              Discord settings
+            </span>
+          </div>
+        </SectionCard>
 
         <ResourceGrid
           loading={state.loading}
@@ -94,43 +56,46 @@ export default function ProjectsPage() {
           emptyState={
             <EmptyState
               title="No projects found"
-              description="Once projects exist in the API, this grid will fill automatically."
+              description="Create your first project from the plus button in the left sidebar."
               icon={FolderKanban}
             />
           }
           renderItem={(project) => (
             <article
               key={project.id}
-              className="rounded-[1.5rem] border border-white/70 bg-white/90 p-5 shadow-sm"
+              className="surface-card rounded-[1.75rem] p-6 transition duration-200 hover:-translate-y-1 hover:shadow-[0_26px_60px_rgba(4,9,25,0.38)]"
             >
-              <p className="mb-3 inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-amber-700">
+              <p className="chip-accent mb-4 inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
                 Project
               </p>
-              <h2 className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-slate-950">
+              <h2 className="font-[family-name:var(--font-heading)] text-gradient-soft text-3xl font-semibold">
                 {project.name}
               </h2>
-              <p className="mt-3 text-sm leading-7 text-slate-600">
+              <p className="mt-3 min-h-14 text-sm leading-7 text-slate-300">
                 {project.description || "No description yet."}
               </p>
-              <p className="mt-4 text-xs uppercase tracking-[0.2em] text-slate-400">
-                Workspace: {project.workspaceId}
+              <p className="mt-5 text-xs uppercase tracking-[0.22em] text-slate-400">
+                Workspace
               </p>
-              <div className="mt-5 flex flex-wrap gap-2">
+              <p className="mt-2 text-sm font-medium text-slate-200">
+                {workspaceNames.get(project.workspaceId) ?? project.workspaceId}
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   href={`/projects/${project.id}`}
-                  className="inline-flex rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  className="button-primary inline-flex rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em]"
                 >
                   Open project
                 </Link>
                 <Link
                   href={`/projects/${project.id}/members`}
-                  className="inline-flex rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  className="button-secondary inline-flex rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em]"
                 >
                   Members
                 </Link>
                 <Link
                   href={`/projects/${project.id}/discord`}
-                  className="inline-flex rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  className="button-secondary inline-flex rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em]"
                 >
                   Discord settings
                 </Link>

@@ -44,7 +44,7 @@ export function TaskAttachmentsPanel({
       description="Upload files with the multipart attachment endpoint and keep the task history in one place."
       icon={Paperclip}
     >
-      <label className="inline-flex cursor-pointer items-center gap-3 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">
+      <label className="button-primary inline-flex cursor-pointer items-center gap-3 rounded-full px-5 py-3 text-sm font-semibold">
         <input
           type="file"
           className="hidden"
@@ -55,11 +55,11 @@ export function TaskAttachmentsPanel({
       </label>
 
       {selectedFileName ? (
-        <p className="mt-3 text-sm text-slate-500">{selectedFileName}</p>
+        <p className="mt-3 text-sm text-slate-300">{selectedFileName}</p>
       ) : null}
 
       {error ? (
-        <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="status-message status-message--error mt-5">
           {error}
         </div>
       ) : null}
@@ -67,29 +67,29 @@ export function TaskAttachmentsPanel({
       <div className="mt-6 space-y-3">
         {loading ? (
           Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="h-20 animate-pulse rounded-[1.5rem] bg-white/70" />
+            <div key={index} className="h-20 animate-pulse rounded-[1.5rem] bg-white/8" />
           ))
         ) : attachments.length === 0 ? (
-          <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-5 py-8 text-sm text-slate-600">
+          <div className="rounded-[1.5rem] border border-dashed border-white/10 bg-white/5 px-5 py-8 text-sm text-slate-300">
             No attachments yet.
           </div>
         ) : (
           attachments.map((attachment) => (
             <article
               key={attachment.id}
-              className="flex flex-wrap items-center justify-between gap-4 rounded-[1.5rem] border border-white/70 bg-white/90 p-5 shadow-sm"
+              className="surface-card flex flex-wrap items-center justify-between gap-4 rounded-[1.5rem] p-5"
             >
               <div>
-                <p className="font-medium text-slate-950">{attachment.fileName}</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  {attachment.contentType} · {new Date(attachment.uploadedAt).toLocaleString()}
+                <p className="font-medium text-white">{attachment.fileName}</p>
+                <p className="mt-1 text-sm text-slate-400">
+                  {attachment.contentType} - {new Date(attachment.uploadedAt).toLocaleString()}
                 </p>
               </div>
               <a
                 href={attachment.fileUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                className="button-secondary rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em]"
               >
                 Open file
               </a>

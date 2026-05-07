@@ -205,41 +205,41 @@ export default function TaskDetailsPage() {
         >
           {taskState.loading ? (
             <div className="space-y-4">
-              <div className="h-14 animate-pulse rounded-2xl bg-white/70" />
-              <div className="h-36 animate-pulse rounded-2xl bg-white/70" />
+              <div className="h-14 animate-pulse rounded-2xl bg-white/8" />
+              <div className="h-36 animate-pulse rounded-2xl bg-white/8" />
             </div>
           ) : taskState.error ? (
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+            <div className="status-message status-message--error">
               {taskState.error}
             </div>
           ) : (
             <form onSubmit={handleSave} className="grid gap-4 lg:grid-cols-2">
               <label className="block space-y-2 lg:col-span-2">
-                <span className="text-sm font-medium text-slate-700">Task title</span>
+                <span className="text-sm font-medium text-slate-300">Task title</span>
                 <input
                   type="text"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                  className="dashboard-input w-full rounded-2xl px-4 py-3"
                 />
               </label>
 
               <label className="block space-y-2 lg:col-span-2">
-                <span className="text-sm font-medium text-slate-700">Description</span>
+                <span className="text-sm font-medium text-slate-300">Description</span>
                 <textarea
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
                   rows={5}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                  className="dashboard-input w-full rounded-2xl px-4 py-3"
                 />
               </label>
 
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-slate-700">Priority</span>
+                <span className="text-sm font-medium text-slate-300">Priority</span>
                 <select
                   value={priority}
                   onChange={(event) => setPriority(event.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                  className="dashboard-input w-full rounded-2xl px-4 py-3"
                 >
                   {priorityOptions.map((option) => (
                     <option key={option} value={option}>
@@ -250,11 +250,11 @@ export default function TaskDetailsPage() {
               </label>
 
               <label className="block space-y-2">
-                <span className="text-sm font-medium text-slate-700">Status</span>
+                <span className="text-sm font-medium text-slate-300">Status</span>
                 <select
                   value={status}
                   onChange={(event) => setStatus(event.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                  className="dashboard-input w-full rounded-2xl px-4 py-3"
                 >
                   {statusOptions.map((option) => (
                     <option key={option} value={option}>
@@ -265,24 +265,24 @@ export default function TaskDetailsPage() {
               </label>
 
               <label className="block space-y-2 lg:col-span-2">
-                <span className="text-sm font-medium text-slate-700">Assignee user id</span>
+                <span className="text-sm font-medium text-slate-300">Assignee user id</span>
                 <input
                   type="text"
                   value={assigneeUserId}
                   onChange={(event) => setAssigneeUserId(event.target.value)}
                   placeholder="Leave empty to keep the task unassigned"
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                  className="dashboard-input w-full rounded-2xl px-4 py-3"
                 />
               </label>
 
               {message ? (
-                <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800 lg:col-span-2">
+                <div className="status-message status-message--success lg:col-span-2">
                   {message}
                 </div>
               ) : null}
 
               {actionError ? (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 lg:col-span-2">
+                <div className="status-message status-message--error lg:col-span-2">
                   {actionError}
                 </div>
               ) : null}
@@ -291,7 +291,7 @@ export default function TaskDetailsPage() {
                 <button
                   type="submit"
                   disabled={saving || deleting || !title.trim()}
-                  className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="button-primary inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Save className="h-4 w-4" />
                   {saving ? "Saving..." : "Save task"}
@@ -301,7 +301,7 @@ export default function TaskDetailsPage() {
                   type="button"
                   onClick={handleDelete}
                   disabled={saving || deleting}
-                  className="inline-flex items-center gap-2 rounded-full border border-rose-200 px-5 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-full border border-rose-400/24 bg-rose-500/6 px-5 py-3 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/12 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Trash2 className="h-4 w-4" />
                   {deleting ? "Deleting..." : "Delete task"}

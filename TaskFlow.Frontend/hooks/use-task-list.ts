@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "@/components/providers/auth-provider";
+import { RESOURCE_CREATED_EVENT } from "@/lib/resource-events";
 import type { AuthResponse, TaskItem, TaskQueryParams } from "@/lib/types";
 
 type Loader = (session: AuthResponse, query?: TaskQueryParams) => Promise<TaskItem[]>;
@@ -35,6 +36,15 @@ export function useTaskList(loader: Loader, query?: TaskQueryParams) {
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  useEffect(() => {
+    function handleResourceCreated() {
+      void load();
+    }
+
+    window.addEventListener(RESOURCE_CREATED_EVENT, handleResourceCreated);
+    return () => window.removeEventListener(RESOURCE_CREATED_EVENT, handleResourceCreated);
   }, [load]);
 
   return { items, loading, error, reload: load };

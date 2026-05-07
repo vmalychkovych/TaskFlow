@@ -95,7 +95,7 @@ export default function WorkspaceMembersPage() {
         description="This screen plugs directly into your workspace member endpoints so you can shape the team before drilling down into project-level access."
       >
         <MemberManager
-          title={`Workspace ${params.workspaceId}`}
+          title="Workspace access roster"
           description="Add active users to the workspace and promote them to admin when they need broader control."
           dateLabel="Joined"
           items={items}

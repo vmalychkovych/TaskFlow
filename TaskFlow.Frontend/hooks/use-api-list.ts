@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "@/components/providers/auth-provider";
+import { RESOURCE_CREATED_EVENT } from "@/lib/resource-events";
 import type { AuthResponse } from "@/lib/types";
 
 type Loader<T> = (session: AuthResponse) => Promise<T[]>;
@@ -35,6 +36,15 @@ export function useApiList<T>(loader: Loader<T>) {
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  useEffect(() => {
+    function handleResourceCreated() {
+      void load();
+    }
+
+    window.addEventListener(RESOURCE_CREATED_EVENT, handleResourceCreated);
+    return () => window.removeEventListener(RESOURCE_CREATED_EVENT, handleResourceCreated);
   }, [load]);
 
   return { items, loading, error, reload: load };

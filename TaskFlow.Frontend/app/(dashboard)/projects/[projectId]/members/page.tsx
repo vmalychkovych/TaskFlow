@@ -96,7 +96,7 @@ export default function ProjectMembersPage() {
         description="Project membership lets you keep workspaces broad but project scopes focused, which matches the backend access model you built."
       >
         <MemberManager
-          title={`Project ${params.projectId}`}
+          title="Project access roster"
           description="Only workspace members should be added here. Promote a collaborator to project admin when they need member and settings control."
           dateLabel="Added"
           items={items}

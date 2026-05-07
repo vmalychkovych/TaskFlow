@@ -12,13 +12,13 @@ export function DashboardPage({
   return (
     <main className="space-y-6">
       <section className="glass-panel hero-mesh rounded-[2rem] px-6 py-8 md:px-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-teal-700">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-300">
           {eyebrow}
         </p>
-        <h1 className="mt-3 font-[family-name:var(--font-heading)] text-4xl font-semibold tracking-tight text-slate-950">
+        <h1 className="mt-3 font-[family-name:var(--font-heading)] text-4xl font-semibold tracking-tight text-white">
           {title}
         </h1>
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-600">
+        <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
           {description}
         </p>
       </section>

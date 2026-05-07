@@ -44,20 +44,20 @@ export function TaskCommentsPanel({
           onChange={(event) => setContent(event.target.value)}
           placeholder="Add context, unblockers, or review notes"
           rows={4}
-          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+          className="dashboard-input w-full rounded-2xl px-4 py-3"
         />
 
         <button
           type="submit"
           disabled={saving || !content.trim()}
-          className="rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="button-primary rounded-full px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
         >
           {saving ? "Posting..." : "Post comment"}
         </button>
       </form>
 
       {error ? (
-        <div className="mt-5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="status-message status-message--error mt-5">
           {error}
         </div>
       ) : null}
@@ -65,23 +65,23 @@ export function TaskCommentsPanel({
       <div className="mt-6 space-y-4">
         {loading ? (
           Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="h-28 animate-pulse rounded-[1.5rem] bg-white/70" />
+            <div key={index} className="h-28 animate-pulse rounded-[1.5rem] bg-white/8" />
           ))
         ) : comments.length === 0 ? (
-          <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-white/70 px-5 py-8 text-sm text-slate-600">
+          <div className="rounded-[1.5rem] border border-dashed border-white/10 bg-white/5 px-5 py-8 text-sm text-slate-300">
             No comments yet.
           </div>
         ) : (
           comments.map((comment) => (
             <article
               key={comment.id}
-              className="rounded-[1.5rem] border border-white/70 bg-white/90 p-5 shadow-sm"
+              className="surface-card rounded-[1.5rem] p-5"
             >
-              <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.18em] text-slate-400">
-                <span>{comment.authorEmail}</span>
-                <span>{new Date(comment.createdAt).toLocaleString()}</span>
+              <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-slate-400">
+                <span className="chip-neutral rounded-full px-2.5 py-1">{comment.authorEmail}</span>
+                <span className="chip-neutral rounded-full px-2.5 py-1">{new Date(comment.createdAt).toLocaleString()}</span>
               </div>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-300">
                 {comment.content}
               </p>
             </article>

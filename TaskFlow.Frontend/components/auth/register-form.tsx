@@ -48,15 +48,15 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-lg flex-col justify-center">
+    <div className="fade-up mx-auto flex h-full w-full max-w-lg flex-col justify-center">
       <div className="mb-10 space-y-3">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-slate-400">
+        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-300/90">
           First time here
         </p>
-        <h2 className="font-[family-name:var(--font-heading)] text-4xl font-semibold tracking-tight text-slate-950">
+        <h2 className="font-[family-name:var(--font-heading)] text-4xl font-semibold tracking-tight text-white">
           Create your TaskFlow account
         </h2>
-        <p className="text-sm leading-7 text-slate-600">
+        <p className="text-sm leading-7 text-slate-300">
           This form posts directly to your ASP.NET `Auth/register` endpoint.
         </p>
       </div>
@@ -95,13 +95,13 @@ export function RegisterForm() {
         />
 
         {message ? (
-          <div className="rounded-2xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
+          <div className="status-message status-message--success">
             {message}
           </div>
         ) : null}
 
         {error ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="status-message status-message--error">
             {error}
           </div>
         ) : null}
@@ -115,15 +115,15 @@ export function RegisterForm() {
             !email.trim() ||
             !password
           }
-          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="button-primary inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
         >
           {submitting ? "Creating account..." : "Create account"}
           <ArrowRight className="h-4 w-4" />
         </button>
 
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-slate-400">
           Already have an account?{" "}
-          <Link href="/login" className="font-semibold text-slate-900 underline-offset-4 hover:underline">
+          <Link href="/login" className="font-semibold text-white underline-offset-4 hover:text-cyan-200 hover:underline">
             Sign in
           </Link>
         </p>
@@ -147,13 +147,13 @@ function Field({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <span className="text-sm font-medium text-slate-300">{label}</span>
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+        className="dashboard-input w-full rounded-2xl px-4 py-3.5"
       />
     </label>
   );

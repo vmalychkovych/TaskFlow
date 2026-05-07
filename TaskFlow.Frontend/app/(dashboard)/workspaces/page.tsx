@@ -1,67 +1,44 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { Building2 } from "lucide-react";
+import { Building2, Sparkles } from "lucide-react";
 
 import { AuthGate } from "@/components/auth/auth-gate";
-import { CreateResourceCard } from "@/components/forms/create-resource-card";
 import { DashboardPage } from "@/components/layout/dashboard-page";
-import { useAuth } from "@/components/providers/auth-provider";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ResourceGrid } from "@/components/ui/resource-grid";
+import { SectionCard } from "@/components/ui/section-card";
 import { useApiList } from "@/hooks/use-api-list";
-import { createWorkspace, getWorkspaces } from "@/lib/api";
+import { getWorkspaces } from "@/lib/api";
 import type { Workspace } from "@/lib/types";
 
 export default function WorkspacesPage() {
-  const { session } = useAuth();
   const state = useApiList<Workspace>(getWorkspaces);
-  const [createError, setCreateError] = useState<string | null>(null);
-
-  async function handleCreate(values: Record<string, string>) {
-    if (!session) {
-      return;
-    }
-
-    setCreateError(null);
-
-    try {
-      await createWorkspace(session, {
-        name: values.name.trim(),
-        description: values.description.trim(),
-      });
-      await state.reload();
-    } catch (error) {
-      setCreateError(error instanceof Error ? error.message : "Unable to create workspace.");
-    }
-  }
 
   return (
     <AuthGate>
       <DashboardPage
         eyebrow="Workspaces"
         title="All workspaces"
-        description="This list is now wired for create plus drill-down into workspace details and membership flows."
+        description="Your workspace layer is now cleaner: creation lives in the left sidebar modal, while this page stays focused on browsing and drilling into details."
       >
-        <CreateResourceCard
-          title="Create a workspace"
-          description="Spin up a new team space before inviting members or creating projects inside it."
-          submitLabel="Create workspace"
-          savingLabel="Creating..."
-          textFields={[
-            { id: "name", label: "Workspace name", placeholder: "Growth Ops" },
-            {
-              id: "description",
-              label: "Description",
-              placeholder: "What this workspace is for",
-              type: "textarea",
-            },
-          ]}
-          initialValues={{ name: "", description: "" }}
-          error={createError}
-          onSubmit={handleCreate}
-        />
+        <SectionCard
+          title="Create from the sidebar"
+          description="Use the plus button next to Workspaces on the left whenever you want to add a new team space. It keeps creation fast without pushing huge forms into the page body."
+          icon={Sparkles}
+        >
+          <div className="flex flex-wrap gap-3 text-sm">
+            <span className="chip-accent rounded-full px-3 py-2 font-medium">
+              Workspace +
+            </span>
+            <span className="chip-neutral rounded-full px-3 py-2">
+              Open details
+            </span>
+            <span className="chip-neutral rounded-full px-3 py-2">
+              Manage members
+            </span>
+          </div>
+        </SectionCard>
 
         <ResourceGrid
           loading={state.loading}
@@ -70,34 +47,34 @@ export default function WorkspacesPage() {
           emptyState={
             <EmptyState
               title="No workspaces yet"
-              description="Create your first workspace on the backend or connect this view to a creation dialog next."
+              description="Create your first workspace from the plus button in the left sidebar."
               icon={Building2}
             />
           }
           renderItem={(workspace) => (
             <article
               key={workspace.id}
-              className="rounded-[1.5rem] border border-white/70 bg-white/90 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="surface-card rounded-[1.75rem] p-6 transition duration-200 hover:-translate-y-1 hover:shadow-[0_26px_60px_rgba(4,9,25,0.38)]"
             >
-              <p className="mb-3 inline-flex rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-teal-700">
+              <p className="chip-accent mb-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
                 Workspace
               </p>
-              <h2 className="font-[family-name:var(--font-heading)] text-2xl font-semibold text-slate-950">
+              <h2 className="text-gradient-soft font-[family-name:var(--font-heading)] text-3xl font-semibold">
                 {workspace.name}
               </h2>
-              <p className="mt-3 text-sm leading-7 text-slate-600">
+              <p className="mt-3 text-sm leading-7 text-slate-300">
                 {workspace.description || "No description yet."}
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <Link
                   href={`/workspaces/${workspace.id}`}
-                  className="inline-flex rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  className="button-primary inline-flex rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em]"
                 >
                   Open workspace
                 </Link>
                 <Link
                   href={`/workspaces/${workspace.id}/members`}
-                  className="inline-flex rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
+                  className="button-secondary inline-flex rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em]"
                 >
                   Members
                 </Link>

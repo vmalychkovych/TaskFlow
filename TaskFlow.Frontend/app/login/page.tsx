@@ -1,4 +1,5 @@
 import { LoginForm } from "@/components/auth/login-form";
+import { TaskFlowBrand } from "@/components/branding/taskflow-brand";
 
 export default async function LoginPage({
   searchParams,
@@ -11,11 +12,11 @@ export default async function LoginPage({
     <main className="hero-mesh flex min-h-screen items-center justify-center px-6 py-12">
       <div className="glass-panel w-full max-w-5xl overflow-hidden rounded-[2rem]">
         <div className="grid min-h-[720px] lg:grid-cols-[0.95fr_1.05fr]">
-          <aside className="flex flex-col justify-between bg-slate-950 px-8 py-10 text-white">
+          <aside className="auth-shell relative flex flex-col justify-between overflow-hidden px-8 py-10 text-white">
+            <div className="ambient-orb ambient-orb--violet absolute -left-12 top-8 h-36 w-36" />
+            <div className="ambient-orb ambient-orb--blue absolute bottom-0 right-0 h-44 w-44" />
             <div className="space-y-5">
-              <p className="font-[family-name:var(--font-heading)] text-sm uppercase tracking-[0.24em] text-teal-300">
-                TaskFlow
-              </p>
+              <TaskFlowBrand compact className="fade-up" />
               <h1 className="max-w-md font-[family-name:var(--font-heading)] text-4xl font-semibold tracking-tight">
                 Bring your workspace, project, and task flow into one calm dashboard.
               </h1>
@@ -33,7 +34,7 @@ export default async function LoginPage({
             </div>
           </aside>
 
-          <section className="bg-white/90 px-6 py-8 md:px-10 md:py-12">
+          <section className="auth-form-surface px-6 py-8 md:px-10 md:py-12">
             <LoginForm nextPath={resolvedSearchParams.next} />
           </section>
         </div>

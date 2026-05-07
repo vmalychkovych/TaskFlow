@@ -1,28 +1,25 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Filter } from "lucide-react";
+import { Filter, Sparkles } from "lucide-react";
 
 import { AuthGate } from "@/components/auth/auth-gate";
-import { CreateResourceCard } from "@/components/forms/create-resource-card";
 import { DashboardPage } from "@/components/layout/dashboard-page";
-import { useAuth } from "@/components/providers/auth-provider";
+import { SectionCard } from "@/components/ui/section-card";
 import { TaskTable } from "@/components/ui/task-table";
 import { useApiList } from "@/hooks/use-api-list";
 import { useTaskList } from "@/hooks/use-task-list";
-import { createTask, getProjects, getTasks } from "@/lib/api";
+import { getProjects, getTasks } from "@/lib/api";
 import type { Project } from "@/lib/types";
 
 const priorityOptions = ["", "Low", "Medium", "High"];
 const statusOptions = ["", "ToDo", "InProgress", "Done"];
 
 export default function AllTasksPage() {
-  const { session } = useAuth();
   const [search, setSearch] = useState("");
   const [projectId, setProjectId] = useState("");
   const [priority, setPriority] = useState("");
   const [status, setStatus] = useState("");
-  const [createError, setCreateError] = useState<string | null>(null);
   const projectState = useApiList<Project>(getProjects);
 
   const query = useMemo(
@@ -40,90 +37,45 @@ export default function AllTasksPage() {
   );
 
   const state = useTaskList(getTasks, query);
-  const projectOptions = useMemo(
-    () =>
-      projectState.items.length > 0
-        ? projectState.items.map((project) => ({
-            label: project.name,
-            value: project.id,
-          }))
-        : [{ label: "Load projects first", value: "" }],
-    [projectState.items],
-  );
-
-  async function handleCreate(values: Record<string, string>) {
-    if (!session) {
-      return;
-    }
-
-    setCreateError(null);
-
-    try {
-      await createTask(session, {
-        title: values.title.trim(),
-        description: values.description.trim(),
-        projectId: values.projectId,
-        assigneeUserId: values.assigneeUserId.trim() || null,
-      });
-      await state.reload();
-    } catch (error) {
-      setCreateError(error instanceof Error ? error.message : "Unable to create task.");
-    }
-  }
 
   return (
     <AuthGate>
       <DashboardPage
         eyebrow="All Tasks"
         title="Cross-project task explorer"
-        description="Use this screen when you need the whole board surface, not just your own queue. It maps directly to the general `/api/tasks` endpoint."
+        description="Use this screen when you need the whole board surface, not just your own queue. New tasks now come from the sidebar modal instead of a full-page create form."
       >
-        <CreateResourceCard
-          title="Create a task"
-          description="Drop a new task into an existing project and optionally pre-assign it to a project member."
-          submitLabel="Create task"
-          savingLabel="Creating..."
-          textFields={[
-            { id: "title", label: "Task title", placeholder: "Prepare launch checklist" },
-            {
-              id: "description",
-              label: "Description",
-              placeholder: "Add context, acceptance criteria, or notes",
-              type: "textarea",
-            },
-            {
-              id: "assigneeUserId",
-              label: "Assignee user id",
-              placeholder: "Optional project member user id",
-            },
-          ]}
-          selectFields={[
-            {
-              id: "projectId",
-              label: "Project",
-              options: projectOptions,
-            },
-          ]}
-          initialValues={{
-            title: "",
-            description: "",
-            assigneeUserId: "",
-            projectId: projectOptions[0]?.value ?? "",
-          }}
-          error={createError ?? projectState.error}
-          onSubmit={handleCreate}
-        />
+        <SectionCard
+          title="Create from the sidebar"
+          description="Use the plus button next to Tasks on the left. The modal lets you pick a project, add the task, and assign it immediately without pushing the filters down."
+          icon={Sparkles}
+        >
+          <div className="flex flex-wrap gap-3 text-sm">
+            <span className="chip-accent rounded-full px-3 py-2 font-medium">
+              Tasks +
+            </span>
+            <span className="chip-neutral rounded-full px-3 py-2">
+              Filter all tasks
+            </span>
+            <span className="chip-neutral rounded-full px-3 py-2">
+              Jump to my queue
+            </span>
+            <span className="chip-neutral rounded-full px-3 py-2">
+              Triage unassigned work
+            </span>
+          </div>
+        </SectionCard>
 
-        <section className="glass-panel rounded-[1.75rem] p-6 md:p-8">
+        <section className="surface-card rounded-[1.75rem] p-6 md:p-8">
           <div className="mb-5 flex items-start gap-4">
-            <div className="inline-flex rounded-[1.25rem] bg-slate-100 p-4">
-              <Filter className="h-6 w-6 text-slate-800" />
+            <div className="inline-flex rounded-[1.25rem] bg-white/8 p-4">
+              <Filter className="h-6 w-6 text-cyan-300" />
             </div>
             <div>
-              <h2 className="font-[family-name:var(--font-heading)] text-3xl font-semibold text-slate-950">
+              <h2 className="font-[family-name:var(--font-heading)] text-3xl font-semibold text-white">
                 Filter tasks
               </h2>
-              <p className="mt-2 text-sm leading-7 text-slate-600">
+              <p className="mt-2 text-sm leading-7 text-slate-300">
                 Search by text, narrow to a project, or slice the list by status and priority.
               </p>
             </div>
@@ -136,15 +88,15 @@ export default function AllTasksPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Find tasks by title or description"
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                className="dashboard-input w-full rounded-2xl px-4 py-3"
               />
             </FilterField>
 
-            <FilterField label="Project ID">
+            <FilterField label="Project">
               <select
                 value={projectId}
                 onChange={(event) => setProjectId(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                className="dashboard-input w-full rounded-2xl px-4 py-3"
               >
                 <option value="">All projects</option>
                 {projectState.items.map((project) => (
@@ -159,7 +111,7 @@ export default function AllTasksPage() {
               <select
                 value={priority}
                 onChange={(event) => setPriority(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                className="dashboard-input w-full rounded-2xl px-4 py-3"
               >
                 {priorityOptions.map((option) => (
                   <option key={option || "all"} value={option}>
@@ -173,7 +125,7 @@ export default function AllTasksPage() {
               <select
                 value={status}
                 onChange={(event) => setStatus(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
+                className="dashboard-input w-full rounded-2xl px-4 py-3"
               >
                 {statusOptions.map((option) => (
                   <option key={option || "all"} value={option}>
@@ -200,7 +152,7 @@ function FilterField({
 }) {
   return (
     <label className="block space-y-2">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+      <span className="text-sm font-medium text-slate-300">{label}</span>
       {children}
     </label>
   );

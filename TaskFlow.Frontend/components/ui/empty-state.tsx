@@ -11,13 +11,13 @@ export function EmptyState({
 }) {
   return (
     <div className="glass-panel rounded-[1.75rem] px-6 py-10 text-center">
-      <div className="mx-auto inline-flex rounded-[1.25rem] bg-slate-100 p-4">
-        <Icon className="h-6 w-6 text-slate-700" />
+      <div className="mx-auto inline-flex rounded-[1.25rem] bg-white/8 p-4">
+        <Icon className="h-6 w-6 text-cyan-300" />
       </div>
-      <h2 className="mt-5 font-[family-name:var(--font-heading)] text-2xl font-semibold text-slate-950">
+      <h2 className="mt-5 font-[family-name:var(--font-heading)] text-2xl font-semibold text-white">
         {title}
       </h2>
-      <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-600">
+      <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-300">
         {description}
       </p>
     </div>
